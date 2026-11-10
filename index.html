@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Lull" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -23,18 +23,14 @@
 
   <div class="app">
     <header class="topbar">
-      <div class="brand">
-        <span class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 32 32" width="28" height="28"><path d="M20 4a12 12 0 1 0 8 20A10 10 0 0 1 20 4z" fill="currentColor"/></svg>
-        </span>
-        <div>
-          <h1>Lull</h1>
-          <p class="sub" id="todayLabel"></p>
-        </div>
-      </div>
-      <button class="icon-btn" id="settingsBtn" aria-label="Settings" title="Settings">
-        <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <button class="time-pill" id="bedPill" data-act="tab:sleep" aria-label="Bedtime">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M5 3 2 6M19 3l3 3"/></svg>
+        <span id="bedPillText">22:30</span>
       </button>
+      <div class="top-actions">
+        <button class="icon-btn" data-act="tab:journey" aria-label="Journey"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></button>
+        <button class="avatar" id="settingsBtn" aria-label="Settings" title="Settings"><span id="avatarText">L</span></button>
+      </div>
     </header>
 
     <main id="view" class="view" tabindex="-1"></main>
@@ -45,11 +41,11 @@
   </button>
 
   <nav class="tabbar" id="tabbar">
-    <button data-tab="today" class="active"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg><span>Today</span></button>
-    <button data-tab="breathe"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".55"/></svg><span>Breathe</span></button>
-    <button data-tab="pause" class="sos"><span class="sos-dot"><svg viewBox="0 0 24 24"><path d="M8 6h3v12H8zM13 6h3v12h-3z"/></svg></span><span>Pause</span></button>
-    <button data-tab="sleep"><svg viewBox="0 0 24 24"><path d="M3 18h18v2H3zM4 11h16a1 1 0 0 1 1 1v5H3v-5a1 1 0 0 1 1-1zM6 7h5a1 1 0 0 1 1 1v3H5V8a1 1 0 0 1 1-1z"/></svg><span>Sleep</span></button>
-    <button data-tab="journey"><svg viewBox="0 0 24 24"><path d="M3 20h18v2H3zM5 13h3v6H5zM10.5 9h3v10h-3zM16 5h3v14h-3z"/></svg><span>Journey</span></button>
+    <button data-tab="today" class="active">For you</button>
+    <button data-tab="breathe">Breathe</button>
+    <button data-tab="pause" class="sos">Pause</button>
+    <button data-tab="sleep">Sleep</button>
+    <button data-tab="journey">Journey</button>
   </nav>
 
   <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
@@ -63,6 +59,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="content.js"></script>
+  <script src="scenes.js"></script>
   <script src="sound.js"></script>
   <script src="app.js"></script>
 </body>

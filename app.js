@@ -22,8 +22,8 @@ const MOOD_NAMES = ['Rough', 'Low', 'Okay', 'Good', 'Great'];
 /* ---------- state ---------- */
 const KEY = 'lull-v1';
 const defaults = () => ({
-  onboarded: false, name: '', goals: [], bedtime: '22:30',
-  settings: { chime: true, haptics: true, voice: true, voiceName: '' },
+  onboarded: false, name: '', goals: [], bedtime: '22:30', wake: '06:30', melody: 'Rainy cabin',
+  settings: { chime: true, haptics: true, voice: true, voiceName: '', nudge: true },
   checkins: [], cravings: [], sessions: [], sleep: [], lessonsDone: [], winddown: {},
 });
 let S;
@@ -68,6 +68,9 @@ function go(t) {
 }
 const rerender = () => { const y = window.scrollY; $('#view').innerHTML = views[tab](); afterRender(); window.scrollTo({ top: y }); };
 function afterRender() {
+  $('#bedPillText').textContent = S.bedtime;
+  $('#avatarText').textContent = (S.name || 'Lull')[0].toUpperCase();
+  if (tab === 'sleep') bindDial();
   // animate bars in from zero
   requestAnimationFrame(() => $$('[data-h]').forEach((el) => (el.style.height = el.dataset.h)));
   requestAnimationFrame(() => $$('[data-w]').forEach((el) => (el.style.width = el.dataset.w)));
@@ -141,6 +144,7 @@ function nowTiles() {
 }
 const nextLesson = () => LULL.lessons.find((l) => !S.lessonsDone.includes(l.id));
 function windDownBanner() {
+  if (!S.settings.nudge) return '';
   const now = new Date(); const mins = now.getHours() * 60 + now.getMinutes();
   let diff = toMin(S.bedtime) - mins; if (diff < -240) diff += 1440;
   if (diff > 45 || diff < -90) return '';
@@ -158,7 +162,9 @@ function renderToday() {
   const ls = lastSleep();
   return `
   <section class="hero">
-    <h2>${greeting()}${S.name ? `, ${esc(S.name)}` : ''}.</h2>
+    ${Scenes.hero()}
+    <h2>${greeting()}${S.name ? `, ${esc(S.name)}` : ''}</h2>
+    <p>Find your balance. Calm the mind, ease the cravings, rest well tonight.</p>
     <p class="quote" style="margin-top:10px">“${esc(q)}”</p>
   </section>
   ${windDownBanner()}
@@ -498,47 +504,149 @@ let timerEnds = 0, timerMins = 0;
 function setTimer(m) { timerMins = m; timerEnds = m ? Date.now() + m * 60000 : 0; Sound.sleepTimer(m); if (Sound.active().length) toast(m ? `Sounds fade out in ${m} min` : 'Timer off'); rerender(); updateNP(); }
 function applyPreset(name) { Sound.set(PRESETS[name]); if (!timerMins) { timerMins = 45; timerEnds = Date.now() + 45 * 60000; Sound.sleepTimer(45); } rerender(); updateNP(); toast(`${name} · fades out in 45 min`); }
 
+const PRESET_SCENE = { 'Rainy cabin': 'fire', 'Seaside': 'ocean', 'Bushveld night': 'crickets', 'Deep rest': 'aurora' };
+const QUALITY = ['Restless sleep', 'Light sleep', 'Okay sleep', 'Peaceful sleep', 'Deep sleep'];
+let statIdx = 0, ecFilter = 'All';
+actions.ecf = (f) => { ecFilter = f; rerender(); };
+actions.stat = (i) => { statIdx = Number(i); rerender(); };
+actions.melody = () => { const names = Object.keys(PRESETS); S.melody = names[(names.indexOf(S.melody) + 1) % names.length]; save(); rerender(); };
+
+/* Sleep timer dial: drag the moon (bedtime) and bell (wake) around a 24h clock. */
+const DIAL_R = 112;
+const angOf = (t) => (toMin(t) / 1440) * Math.PI * 2;
+const ptOf = (t, r = DIAL_R) => { const a = angOf(t); return [150 + r * Math.sin(a), 150 - r * Math.cos(a)]; };
+function dialInner() {
+  const [bx, by] = ptOf(S.bedtime), [wx, wy] = ptOf(S.wake);
+  let span = toMin(S.wake) - toMin(S.bedtime); if (span <= 0) span += 1440;
+  let ticks = '';
+  for (let i = 0; i < 48; i++) {
+    const a = (i / 48) * Math.PI * 2, hour = i % 2 === 0, major = i % 12 === 0;
+    const r1 = major ? 76 : hour ? 82 : 86, r2 = 92;
+    ticks += `<line x1="${150 + r1 * Math.sin(a)}" y1="${150 - r1 * Math.cos(a)}" x2="${150 + r2 * Math.sin(a)}" y2="${150 - r2 * Math.cos(a)}" stroke="#fff" stroke-opacity="${major ? 0.9 : hour ? 0.45 : 0.18}" stroke-width="${major ? 2 : 1.4}" stroke-linecap="round"/>`;
+  }
+  const lbl = (txt, a, r = 62, size = 12, op = 0.95) => `<text x="${150 + r * Math.sin(a)}" y="${150 - r * Math.cos(a) + 4}" text-anchor="middle" font-size="${size}" fill="#fff" fill-opacity="${op}" font-family="Outfit, sans-serif">${txt}</text>`;
+  const small = [2, 4, 8, 10, 14, 16, 20, 22].map((h) => lbl(h, (h / 24) * Math.PI * 2, 66, 8, 0.3)).join('');
+  return `<defs><linearGradient id="arcG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6a58c8"/><stop offset="1" stop-color="#b6a8ff"/></linearGradient>
+      <radialGradient id="faceG" cx="50%" cy="40%"><stop offset="0" stop-color="#2e2440"/><stop offset="1" stop-color="#17111f"/></radialGradient></defs>
+    <circle cx="150" cy="150" r="${DIAL_R + 18}" fill="url(#faceG)"/>
+    <circle cx="150" cy="150" r="${DIAL_R}" fill="none" stroke="#fff" stroke-opacity=".05" stroke-width="30"/>
+    <path d="M${bx} ${by} A ${DIAL_R} ${DIAL_R} 0 ${span > 720 ? 1 : 0} 1 ${wx} ${wy}" fill="none" stroke="url(#arcG)" stroke-width="30" stroke-linecap="round" style="filter:drop-shadow(0 0 10px rgba(156,140,242,.55))"/>
+    ${ticks}${lbl('00', 0)}${lbl('06', Math.PI / 2)}${lbl('12', Math.PI)}${lbl('18', Math.PI * 1.5)}${small}
+    <path d="M150 112 a7 7 0 1 0 6 10 a6 6 0 0 1 -6 -10z" fill="#9c8cf2"/>
+    <g transform="translate(150 186)" stroke="#f2c27b" stroke-width="1.4" stroke-linecap="round"><circle r="4.5" fill="#f2c27b"/>${[0, 45, 90, 135, 180, 225, 270, 315].map((d) => `<line x1="${7 * Math.sin(d * Math.PI / 180)}" y1="${7 * Math.cos(d * Math.PI / 180)}" x2="${10 * Math.sin(d * Math.PI / 180)}" y2="${10 * Math.cos(d * Math.PI / 180)}"/>`).join('')}</g>
+    <g class="knob" data-knob="bedtime" transform="translate(${bx} ${by})"><circle r="17" fill="#f4f0fb" style="filter:drop-shadow(0 4px 10px rgba(0,0,0,.45))"/><path d="M2 -8 a8 8 0 1 0 6 12 a7 7 0 0 1 -6 -12z" fill="#2a1f40"/></g>
+    <g class="knob" data-knob="wake" transform="translate(${wx} ${wy})"><circle r="17" fill="#2a1f40" stroke="#f4f0fb" stroke-width="2" style="filter:drop-shadow(0 4px 10px rgba(0,0,0,.45))"/><path d="M-6 3 a6 6 0 0 1 12 0 v-3 a6 6 0 0 0 -12 0z M-7 3 h14 M-1.6 6 a1.6 1.6 0 0 0 3.2 0" fill="none" stroke="#f4f0fb" stroke-width="1.6" stroke-linecap="round"/></g>`;
+}
+function dialSummary() {
+  let span = toMin(S.wake) - toMin(S.bedtime); if (span <= 0) span += 1440;
+  const h = Math.floor(span / 60), m = span % 60;
+  return `<b>${h} hrs${m ? ` ${m} min` : ''}</b><p>${span >= 450 ? 'Your sleep window meets your goal.' : `That's ${fmtDur(480 - span)} short of 8 hours.`}</p>`;
+}
+function bindDial() {
+  const svg = $('#dial'); if (!svg) return;
+  let drag = null;
+  const toTime = (e) => {
+    const r = svg.getBoundingClientRect();
+    const x = e.clientX - r.left - r.width / 2, y = e.clientY - r.top - r.height / 2;
+    let a = Math.atan2(x, -y); if (a < 0) a += Math.PI * 2;
+    const mins = (Math.round(((a / (Math.PI * 2)) * 1440) / 5) * 5) % 1440;
+    return `${pad(Math.floor(mins / 60))}:${pad(mins % 60)}`;
+  };
+  svg.addEventListener('pointerdown', (e) => {
+    const k = e.target.closest('[data-knob]'); if (!k) return;
+    drag = k.dataset.knob; svg.setPointerCapture(e.pointerId); buzz(10); e.preventDefault();
+  });
+  svg.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const t = toTime(e); if (t === S[drag]) return;
+    S[drag] = t; svg.innerHTML = dialInner();
+    $('#bwBed').textContent = S.bedtime; $('#bwWake').textContent = S.wake; $('#dialSum').innerHTML = dialSummary();
+    if (t.endsWith(':00') || t.endsWith(':30')) buzz(4);
+  });
+  const end = () => { if (drag) { drag = null; save(); $('#bedPillText').textContent = S.bedtime; } };
+  svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end);
+}
+
+function editorsChoice() {
+  const items = [
+    ...LULL.stories.map((s) => ({ type: 'Stories', scene: s.id, mins: s.mins, title: s.title, sub: 'Sleep story', act: `story:${s.id}` })),
+    ...Object.keys(PRESETS).map((n) => ({ type: 'Mixes', scene: PRESET_SCENE[n], mins: '∞', title: n, sub: 'Sound mix', act: `preset:${n}` })),
+    { type: 'Breathing', scene: 'aurora', hue: 1, mins: 5, title: '4·7·8 for sleep', sub: 'Breathing', act: 'breath:478:5' },
+    { type: 'Breathing', scene: 'ocean', mins: 10, title: 'Even breath', sub: 'Breathing', act: 'breath:coherent:10' },
+  ];
+  return items.filter((x) => ecFilter === 'All' || x.type === ecFilter);
+}
+
 function renderSleep() {
-  const now = new Date(); const mins = now.getHours() * 60 + now.getMinutes();
-  let until = toMin(S.bedtime) - mins; if (until < -180) until += 1440;
   const wd = S.winddown[nightKey()] || {};
   const doneN = LULL.windDown.filter((w) => wd[w.id]).length;
-  const ls = lastSleep();
-  const logged = ls && ls.date === dk();
   const act = Sound.active();
+  const nights = S.sleep.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
+  if (statIdx >= nights.length) statIdx = 0;
+  const night = nights[statIdx];
+  const dayLabel = (d) => d === dk() ? 'Today' : d === dk(daysAgo(1)) ? 'Yesterday' : new Date(d + 'T12:00').toLocaleDateString('en-ZA', { weekday: 'long' });
+  const loggedToday = S.sleep.some((s) => s.date === dk());
+  const chev = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>';
   return `
-  <section class="hero"><h2>Sleep</h2><p>${until > 0 ? `Bedtime at ${S.bedtime}, in <b style="color:var(--text)">${fmtDur(until)}</b>.` : `Bedtime was ${S.bedtime}. Time to rest.`} Better sleep means fewer cravings tomorrow.</p></section>
+  <section class="dial-head">
+    <h2>Sleep Timer</h2>
+    <div class="bw">
+      <div><small><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M14 3a9 9 0 1 0 7 13A8 8 0 0 1 14 3z"/></svg>Bedtime</small><b id="bwBed">${S.bedtime}</b></div>
+      <div><small><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"/></svg>Wake up</small><b id="bwWake">${S.wake}</b></div>
+    </div>
+    <svg id="dial" class="dial" viewBox="0 0 300 300" aria-label="Drag the moon and bell to set bedtime and wake-up">${dialInner()}</svg>
+    <div class="dial-sum" id="dialSum">${dialSummary()}</div>
+  </section>
 
-  <div class="card">
-    ${logged ? `<div class="row between"><div><h3>Last night: ${fmtDur(sleepHours(ls) * 60)}</h3><p class="muted small">${ls.bed} → ${ls.wake} · ${'★'.repeat(ls.q)}${'☆'.repeat(5 - ls.q)}</p></div><button class="btn sm" data-act="sleeplog">Edit</button></div>`
-    : `<div class="row between"><div><h3>How did you sleep?</h3><p class="muted small">Log last night to spot the sleep-craving link.</p></div><button class="btn sm primary" data-act="sleeplog">Log</button></div>`}
+  <div class="card list-card" style="margin-top:18px">
+    <div class="list-row"><span>Bedtime nudge</span><label class="switch"><input type="checkbox" data-set="nudge" ${S.settings.nudge ? 'checked' : ''}><i></i></label></div>
+    <button class="list-row" data-act="melody"><span>Melody</span><span class="val">${esc(S.melody)} ${chev}</span></button>
+    <button class="list-row" data-act="sleeplog"><span>Last night</span><span class="val">${loggedToday ? fmtDur(sleepHours(S.sleep.find((s) => s.date === dk())) * 60) : 'Log it'} ${chev}</span></button>
   </div>
 
-  <div class="section-title"><h3>Soundscapes</h3>${act.length ? `<a data-act="stopsound">Stop all</a>` : '<span class="faint">endless, made live</span>'}</div>
+  <div class="section-title"><h3>Sleep statistics</h3><button class="plus" data-act="sleeplog" aria-label="Log sleep">+</button></div>
+  ${nights.length ? `<div class="seg">${nights.map((x, i) => `<button class="${i === statIdx ? 'on' : ''}" data-act="stat:${i}">${dayLabel(x.date)}</button>`).join('')}</div>
   <div class="card">
-    <div class="chips" style="margin-bottom:14px">${Object.keys(PRESETS).map((n) => `<button class="chip" data-act="preset:${n}">${n}</button>`).join('')}</div>
-    <div class="mixer">${LULL.sounds.map((s) => { const on = act.includes(s.id); return `<div class="snd ${on ? 'on' : ''}"><button data-snd="${s.id}" style="width:100%"><span class="ico">${s.icon}</span><b>${s.name}</b></button><input type="range" min="0" max="100" value="${Math.round((Sound.vol(s.id) ?? 0.5) * 100)}" data-vol="${s.id}" ${on ? '' : 'style="opacity:.3"'} aria-label="${s.name} volume"></div>`; }).join('')}</div>
-    <p class="faint" style="margin-top:14px">Sleep timer${timerEnds ? ` · fades out at ${fmtTime(timerEnds)}` : ''}</p>
-    <div class="timer-row" style="margin-top:6px">${[0, 15, 30, 45, 60, 90].map((m) => `<button class="chip ${timerMins === m ? 'on' : ''}" data-act="timer:${m}">${m ? m + ' min' : 'Off'}</button>`).join('')}</div>
+    <p class="small muted">REST — ${night.bed} to ${night.wake}</p>
+    <div class="glowline"><i style="width:0" data-w="${Math.min(100, (sleepHours(night) / 8) * 100)}%"></i></div>
+    <b style="font-size:20px">${(() => { const t = Math.round(sleepHours(night) * 60); return `${Math.floor(t / 60)} hrs ${t % 60} min`; })()}</b>
+    <div class="row small muted" style="margin-top:6px;gap:16px"><span><span style="color:var(--green)">●</span> ${QUALITY[night.q - 1]}</span><span>💬 ${sleepHours(night) >= 7 ? 'On target' : 'A bit short'}</span></div>
+  </div>` : `<div class="card"><div class="empty" style="padding:12px"><span class="e">🌙</span>Log your first night to see your rest here.</div></div>`}
+
+  <div class="showcase" style="margin-top:24px">
+    <h2>Sleep<br>Soundscapes</h2>
+    <p>Endless sounds, made live on your phone. Tap to mix, slide to blend.</p>
+    <div class="scenes">${LULL.sounds.map((s) => { const on = act.includes(s.id); return `<button class="scene ${on ? 'on' : ''}" data-snd="${s.id}" aria-pressed="${on}">${Scenes.scene(s.id)}<span class="lbl">${s.name}</span>${on ? '<span class="on-dot"></span>' : ''}</button>`; }).join('')}</div>
+    <div class="dots"><i class="on"></i><i></i><i></i></div>
+    ${act.length ? `<div class="vols">${act.map((id) => `<div class="vol-row"><span>${LULL.sounds.find((s) => s.id === id).name}</span><input type="range" min="0" max="100" value="${Math.round((Sound.vol(id) ?? 0.5) * 100)}" data-vol="${id}" aria-label="volume"></div>`).join('')}</div>` : ''}
+    <div class="vols"><p class="faint" style="margin-top:12px">Fade out ${timerEnds ? `at ${fmtTime(timerEnds)}` : 'after'}</p>
+    <div class="chips" style="margin-top:8px;justify-content:center">${[0, 15, 30, 45, 60, 90].map((m) => `<button class="chip ${timerMins === m ? 'on' : ''}" data-act="timer:${m}">${m ? m + 'm' : 'Off'}</button>`).join('')}</div>
+    ${act.length ? `<button class="btn sm ghost" data-act="stopsound" style="margin-top:8px">Stop all sounds</button>` : ''}</div>
   </div>
 
-  <div class="section-title"><h3>Sleep stories</h3><span class="faint">read aloud</span></div>
-  <div class="card">${LULL.stories.map((s, i) => `<button class="story" data-act="story:${s.id}" style="${i ? 'margin-top:14px' : ''}"><span class="art" style="background:${['linear-gradient(135deg,#3b4a7a,#1d2550)', 'linear-gradient(135deg,#4a3b7a,#22194a)', 'linear-gradient(135deg,#1f5a6a,#0f2a3a)', 'linear-gradient(135deg,#5a3b5a,#2a1530)'][i % 4]}">${['🌧️', '🚂', '🗼', '🧘'][i % 4]}</span><div><b>${esc(s.title)}</b><small>${esc(s.desc)}</small><small class="faint">${s.mins} min</small></div></button>`).join('')}</div>
+  <div class="chips scroll" style="margin-top:20px">${['All', 'Stories', 'Mixes', 'Breathing'].map((f) => `<button class="chip ${ecFilter === f ? 'on' : ''}" data-act="ecf:${f}">${f}</button>`).join('')}</div>
+  <div class="section-title"><h3>Editors' choice</h3></div>
+  <div class="hscroll">${editorsChoice().map((x) => `<button class="ec" data-act="${x.act}">${Scenes.scene(x.scene, x.hue)}<span class="badge">🎧 ${x.mins}${x.mins === '∞' ? '' : ' mins'}</span><div class="meta"><b>${esc(x.title)}</b><small>${x.sub}</small></div></button>`).join('')}</div>
 
   <div class="section-title"><h3>Tonight's wind-down</h3><span class="faint">${doneN}/${LULL.windDown.length}</span></div>
   <div class="card">
-    <div class="progress" style="margin-bottom:6px"><i style="width:0;background:linear-gradient(90deg,var(--sky),var(--lav))" data-w="${(doneN / LULL.windDown.length) * 100}%"></i></div>
+    <div class="progress" style="margin-bottom:6px"><i style="width:0" data-w="${(doneN / LULL.windDown.length) * 100}%"></i></div>
     ${LULL.windDown.map((w) => `<button class="check ${wd[w.id] ? 'on' : ''}" data-act="wd:${w.id}"><span class="box"></span><div><b>${esc(w.label)}</b><small>${esc(w.hint)}</small></div></button>`).join('')}
-  </div>
-  <button class="btn block" data-act="breath:478:5" style="margin-top:12px">💤 Start 4·7·8 breathing in bed</button>`;
+  </div>`;
 }
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-snd]'); if (!b) return;
   const id = b.dataset.snd; buzz(10);
-  if (Sound.active().includes(id)) Sound.stop(id); else Sound.start(id, (+$(`[data-vol="${id}"]`).value || 50) / 100);
-  rerender();
+  if (Sound.active().includes(id)) Sound.stop(id); else Sound.start(id, 0.5);
+  const sc = $('.scenes'); const x = sc ? sc.scrollLeft : 0;
+  rerender(); if ($('.scenes')) $('.scenes').scrollLeft = x;
 });
-document.addEventListener('input', (e) => { const id = e.target.dataset?.vol; if (!id) return; if (!Sound.active().includes(id)) { Sound.start(id, e.target.value / 100); e.target.style.opacity = 1; e.target.closest('.snd').classList.add('on'); } else Sound.setVol(id, e.target.value / 100); });
+document.addEventListener('input', (e) => { const id = e.target.dataset?.vol; if (id) Sound.setVol(id, e.target.value / 100); });
+document.addEventListener('scroll', (e) => {
+  if (!e.target.classList?.contains('scenes')) return;
+  const sc = e.target, p = sc.scrollLeft / Math.max(1, sc.scrollWidth - sc.clientWidth), i = Math.min(2, Math.round(p * 2));
+  $$('.dots i').forEach((d, j) => d.classList.toggle('on', j === i));
+}, true);
 
 function toggleWind(id) {
   const k = nightKey(); const wd = (S.winddown[k] = S.winddown[k] || {});
@@ -594,7 +702,7 @@ function openStory(id) {
   const tts = S.settings.voice && 'speechSynthesis' in window;
   const o = openOverlay(`
     <div class="ov-top">${closeBtn()}<span class="pill">${esc(s.title)}</span><span style="width:42px"></span></div>
-    <div class="ov-body top"><div class="reader" id="rd">${sentences.map((t, i) => `<p data-i="${i}">${esc(t)}</p>`).join('')}</div>
+    <div class="ov-body top"><div class="story-art">${Scenes.scene(s.id)}</div><div class="reader" id="rd">${sentences.map((t, i) => `<p data-i="${i}">${esc(t)}</p>`).join('')}</div>
     <div class="ov-controls" style="margin-top:20px"><button class="round-btn" id="stT"><svg viewBox="0 0 24 24" id="stI"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg></button></div>
     <p class="faint" style="text-align:center;margin-top:12px">${tts ? 'Read by your device voice. Sounds keep playing after the story.' : 'Read along. Sounds keep playing after the story.'}</p></div>`,
     () => { gen++; window.speechSynthesis?.cancel(); });
@@ -848,8 +956,6 @@ function sparkle(host) {
 })();
 
 /* ---------- boot ---------- */
-function setDate() { $('#todayLabel').textContent = new Date().toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long' }); }
-setDate();
 go('today');
 if (!S.onboarded) onboarding();
 if (location.hash === '#pause') openPause();
