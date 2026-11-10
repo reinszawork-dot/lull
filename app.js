@@ -506,8 +506,7 @@ function applyPreset(name) { Sound.set(PRESETS[name]); if (!timerMins) { timerMi
 
 const PRESET_SCENE = { 'Rainy cabin': 'fire', 'Seaside': 'ocean', 'Bushveld night': 'crickets', 'Deep rest': 'aurora' };
 const QUALITY = ['Restless sleep', 'Light sleep', 'Okay sleep', 'Peaceful sleep', 'Deep sleep'];
-let statIdx = 0, ecFilter = 'All';
-actions.ecf = (f) => { ecFilter = f; rerender(); };
+let statIdx = 0;
 actions.stat = (i) => { statIdx = Number(i); rerender(); };
 actions.melody = () => { const names = Object.keys(PRESETS); S.melody = names[(names.indexOf(S.melody) + 1) % names.length]; save(); rerender(); };
 
@@ -567,16 +566,6 @@ function bindDial() {
   svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end);
 }
 
-function editorsChoice() {
-  const items = [
-    ...LULL.stories.map((s) => ({ type: 'Stories', scene: s.id, mins: s.mins, title: s.title, sub: 'Sleep story', act: `story:${s.id}` })),
-    ...Object.keys(PRESETS).map((n) => ({ type: 'Mixes', scene: PRESET_SCENE[n], mins: '∞', title: n, sub: 'Sound mix', act: `preset:${n}` })),
-    { type: 'Breathing', scene: 'aurora', hue: 1, mins: 5, title: '4·7·8 for sleep', sub: 'Breathing', act: 'breath:478:5' },
-    { type: 'Breathing', scene: 'ocean', mins: 10, title: 'Even breath', sub: 'Breathing', act: 'breath:coherent:10' },
-  ];
-  return items.filter((x) => ecFilter === 'All' || x.type === ecFilter);
-}
-
 function renderSleep() {
   const wd = S.winddown[nightKey()] || {};
   const doneN = LULL.windDown.filter((w) => wd[w.id]).length;
@@ -624,9 +613,8 @@ function renderSleep() {
     ${act.length ? `<button class="btn sm ghost" data-act="stopsound" style="margin-top:8px">Stop all sounds</button>` : ''}</div>
   </div>
 
-  <div class="chips scroll" style="margin-top:20px">${['All', 'Stories', 'Mixes', 'Breathing'].map((f) => `<button class="chip ${ecFilter === f ? 'on' : ''}" data-act="ecf:${f}">${f}</button>`).join('')}</div>
-  <div class="section-title"><h3>Editors' choice</h3></div>
-  <div class="hscroll">${editorsChoice().map((x) => `<button class="ec" data-act="${x.act}">${Scenes.scene(x.scene, x.hue)}<span class="badge">🎧 ${x.mins}${x.mins === '∞' ? '' : ' mins'}</span><div class="meta"><b>${esc(x.title)}</b><small>${x.sub}</small></div></button>`).join('')}</div>
+  <div class="section-title"><h3>Sleep stories</h3></div>
+  <div class="card list-card">${LULL.stories.map((s) => `<button class="list-row" data-act="story:${s.id}"><span>${esc(s.title)}</span><span class="val">${s.mins} min ${chev}</span></button>`).join('')}</div>
 
   <div class="section-title"><h3>Tonight's wind-down</h3><span class="faint">${doneN}/${LULL.windDown.length}</span></div>
   <div class="card">
