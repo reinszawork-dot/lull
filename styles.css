@@ -364,3 +364,15 @@ textarea.input { resize: vertical; min-height: 84px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+/* NextWave Pro */
+.pro-badge { display: inline-block; margin-left: 6px; padding: 2px 7px; border-radius: 99px; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; vertical-align: middle; background: linear-gradient(90deg, #9c8cf2, #c6b4ff); color: #1a1226; line-height: 1.4; }
+.pro-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left; }
+.insights90 { width: 100%; text-align: left; }
+.chip.mymix { display: inline-flex; align-items: center; gap: 6px; padding: 0 6px 0 0; }
+.chip.mymix button { padding: 8px 4px 8px 13px; font: inherit; color: inherit; }
+.chip.mymix .x { padding: 4px 6px; opacity: .6; font-size: 16px; line-height: 1; }
+.tbl90 { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl90 th { color: var(--muted); font-weight: 500; font-size: 11px; text-align: right; padding: 0 0 8px; }
+.tbl90 td { padding: 8px 0; border-top: 1px solid var(--line); text-align: right; }
+.tbl90 td:first-child { text-align: left; color: var(--muted); }

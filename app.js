@@ -24,7 +24,7 @@ const KEY = 'lull-v1';
 const defaults = () => ({
   onboarded: false, name: '', goals: [], bedtime: '22:30', wake: '06:30', melody: 'Rainy cabin',
   settings: { chime: true, haptics: true, voice: true, voiceName: '', nudge: true },
-  checkins: [], cravings: [], sessions: [], sleep: [], lessonsDone: [], winddown: {},
+  checkins: [], cravings: [], sessions: [], sleep: [], lessonsDone: [], winddown: {}, mixes: [],
 });
 let S;
 try { S = Object.assign(defaults(), JSON.parse(localStorage.getItem(KEY) || '{}')); } catch { S = defaults(); }
@@ -33,6 +33,21 @@ const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch
 
 const buzz = (p = 20) => { if (S.settings.haptics && navigator.vibrate) navigator.vibrate(p); };
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2200); }
+/* ---------- NextWave Pro ---------- */
+NextWavePro.init({
+  app: 'lull', name: 'Lull Pro', price: 'R79 once-off',
+  buyUrl: 'https://payhip.com', // placeholder until the Payhip product exists
+  features: ['3 extra sleep stories', 'Signature soundscape mixes, and save your own', 'Steady: a 7-day course after Unhook', '90-day insights on sleep, mood and cravings'],
+  accent: '#7b68e0',
+});
+const isPro = () => NextWavePro.isPro();
+const proBadge = () => (isPro() ? '' : '<span class="pro-badge">Pro</span>');
+window.addEventListener('nextwave-pro-change', () => { if ($('#overlay').hidden) rerender(); if (!$('#sheet').hidden && $('#proRow')) openSettings(); });
+const allStories = () => [...LULL.stories, ...LULL.proStories];
+const allLessons = () => [...LULL.lessons, ...LULL.steady];
+const isProStory = (id) => LULL.proStories.some((s) => s.id === id);
+const isSteady = (id) => LULL.steady.some((l) => l.id === id);
+
 function logSession(kind, ref, mins, extra = {}) { S.sessions.push({ id: uid(), ts: Date.now(), kind, ref, mins: Math.round(mins * 10) / 10, ...extra }); save(); }
 
 /* ---------- derived stats ---------- */
@@ -83,8 +98,14 @@ const actions = {
   surf: () => openPause({ jump: 'surf' }),
   mindful: () => openMindful(),
   breath: (id, m) => openBreath(id, Number(m) || 3),
-  story: (id) => openStory(id),
-  lesson: (id) => openLesson(id),
+  story: (id) => (isProStory(id) ? NextWavePro.gate('More sleep stories', () => openStory(id)) : openStory(id)),
+  lesson: (id) => (isSteady(id) ? NextWavePro.gate('The Steady course', () => openLesson(id)) : openLesson(id)),
+  mix: (name) => NextWavePro.gate('Signature mixes', () => applyMix(LULL.proMixes[name], name)),
+  savemix: () => NextWavePro.gate('Saving your own mixes', saveMix),
+  mymix: (i) => { const m = S.mixes[Number(i)]; if (m) applyMix(m.mix, m.name); },
+  delmix: (i) => { S.mixes.splice(Number(i), 1); save(); rerender(); toast('Mix removed'); },
+  insights90: () => NextWavePro.gate('90-day insights', openInsights90),
+  pro: () => NextWavePro.open(),
   tab: (t) => go(t),
   checkin: (m) => openCheckin(Number(m)),
   sleeplog: () => openSleepLog(),
@@ -143,6 +164,20 @@ function nowTiles() {
   return [T('🌙', 'Wind down', 'Your night routine', '#8fb6ff', 'tab:sleep'), T('💤', '4·7·8 in bed', 'Sleep breath · 5 min', '#a99cff', 'breath:478:5')];
 }
 const nextLesson = () => LULL.lessons.find((l) => !S.lessonsDone.includes(l.id));
+function steadyCard() {
+  const done = LULL.steady.filter((l) => S.lessonsDone.includes(l.id)).length;
+  const nx = LULL.steady.find((l) => !S.lessonsDone.includes(l.id));
+  return `<div class="section-title"><h3>Steady · after Unhook ${proBadge()}</h3><span class="faint">${done}/${LULL.steady.length}</span></div>
+  <div class="card">
+    <p class="muted small">Seven more short lessons for the hard weeks: high-risk times, "if, then" plans, social eating and a steady sleep routine.</p>
+    <div class="progress" style="margin-top:10px"><i style="width:0" data-w="${(done / LULL.steady.length) * 100}%"></i></div>
+    ${nx ? `<button class="lesson-row next" data-act="lesson:${nx.id}" style="margin-top:6px"><span class="lesson-num">${LULL.steady.indexOf(nx) + 1}</span><div><b>${esc(nx.title)}</b><br><small>${done ? 'Up next' : 'Start here'} · ${nx.mins} min read</small></div><span class="link">${isPro() ? 'Start' : 'Unlock'}</span></button>`
+    : `<p style="margin-top:12px">You finished Steady. Your plan is yours to keep.</p>`}
+    ${isPro() ? `<details style="margin-top:4px"><summary class="link" style="list-style:none;padding:8px 0">All Steady lessons</summary>
+      ${LULL.steady.map((l, i) => `<button class="lesson-row ${S.lessonsDone.includes(l.id) ? 'done' : ''}" data-act="lesson:${l.id}"><span class="lesson-num">${S.lessonsDone.includes(l.id) ? '✓' : i + 1}</span><div><b>${esc(l.title)}</b><br><small>${l.mins} min</small></div></button>`).join('')}
+    </details>` : ''}
+  </div>`;
+}
 function windDownBanner() {
   if (!S.settings.nudge) return '';
   const now = new Date(); const mins = now.getHours() * 60 + now.getMinutes();
@@ -201,6 +236,8 @@ function renderToday() {
       ${LULL.lessons.map((l, i) => `<button class="lesson-row ${S.lessonsDone.includes(l.id) ? 'done' : ''}" data-act="lesson:${l.id}"><span class="lesson-num">${S.lessonsDone.includes(l.id) ? '✓' : i + 1}</span><div><b>${esc(l.title)}</b><br><small>${l.mins} min</small></div></button>`).join('')}
     </details>
   </div>
+
+  ${steadyCard()}
 
   <div class="section-title"><h3>Quick tools</h3></div>
   <div class="tiles">
@@ -502,6 +539,17 @@ function openMindful() {
 const PRESETS = { 'Rainy cabin': { rain: 0.55, fire: 0.35 }, 'Seaside': { ocean: 0.6, wind: 0.15 }, 'Bushveld night': { crickets: 0.45, wind: 0.12, drone: 0.2 }, 'Deep rest': { brown: 0.6, drone: 0.15 } };
 let timerEnds = 0, timerMins = 0;
 function setTimer(m) { timerMins = m; timerEnds = m ? Date.now() + m * 60000 : 0; Sound.sleepTimer(m); if (Sound.active().length) toast(m ? `Sounds fade out in ${m} min` : 'Timer off'); rerender(); updateNP(); }
+function applyMix(mix, name) { Sound.stopAll(true); Sound.set(mix); if (!timerMins) { timerMins = 45; timerEnds = Date.now() + 45 * 60000; Sound.sleepTimer(45); } rerender(); updateNP(); toast(`${name} · fades out in ${timerMins} min`); }
+function saveMix() {
+  const act = Sound.active(); if (!act.length) return toast('Turn on a sound or two first');
+  const mix = {}; act.forEach((id) => (mix[id] = Math.round((Sound.vol(id) ?? 0.5) * 100) / 100));
+  openSheet(`<h2>Save this mix</h2><p class="muted">${act.map((id) => LULL.sounds.find((s) => s.id === id).name).join(' + ')}</p>
+    <label class="field"><span>Name</span><input class="input" id="mixName" maxlength="24" placeholder="e.g. Sunday nap"></label>
+    <button class="btn primary block" id="mixSave" style="margin-top:16px">Save mix</button>`, () => {
+    $('#mixName').focus();
+    $('#mixSave').onclick = () => { const name = $('#mixName').value.trim() || `Mix ${S.mixes.length + 1}`; S.mixes.push({ name, mix }); save(); closeSheet(); rerender(); toast(`Saved “${name}”`); };
+  });
+}
 function applyPreset(name) { Sound.set(PRESETS[name]); if (!timerMins) { timerMins = 45; timerEnds = Date.now() + 45 * 60000; Sound.sleepTimer(45); } rerender(); updateNP(); toast(`${name} · fades out in 45 min`); }
 
 const PRESET_SCENE = { 'Rainy cabin': 'fire', 'Seaside': 'ocean', 'Bushveld night': 'crickets', 'Deep rest': 'aurora' };
@@ -611,10 +659,15 @@ function renderSleep() {
     <div class="vols"><p class="faint" style="margin-top:12px">Fade out ${timerEnds ? `at ${fmtTime(timerEnds)}` : 'after'}</p>
     <div class="chips" style="margin-top:8px;justify-content:center">${[0, 15, 30, 45, 60, 90].map((m) => `<button class="chip ${timerMins === m ? 'on' : ''}" data-act="timer:${m}">${m ? m + 'm' : 'Off'}</button>`).join('')}</div>
     ${act.length ? `<button class="btn sm ghost" data-act="stopsound" style="margin-top:8px">Stop all sounds</button>` : ''}</div>
+    <div class="vols"><p class="faint" style="margin-top:16px">Signature mixes ${proBadge()}</p>
+    <div class="chips" style="margin-top:8px;justify-content:center">${Object.keys(LULL.proMixes).map((n) => `<button class="chip" data-act="mix:${esc(n)}">${esc(n)}</button>`).join('')}</div>
+    ${S.mixes.length ? `<p class="faint" style="margin-top:12px">Your mixes</p><div class="chips" style="margin-top:8px;justify-content:center">${S.mixes.map((m, i) => `<span class="chip mymix"><button data-act="mymix:${i}">${esc(m.name)}</button><button class="x" data-act="delmix:${i}" aria-label="Remove ${esc(m.name)}">×</button></span>`).join('')}</div>` : ''}
+    ${act.length ? `<button class="btn sm ghost" data-act="savemix" style="margin-top:10px">Save this mix ${proBadge()}</button>` : ''}</div>
   </div>
 
   <div class="section-title"><h3>Sleep stories</h3></div>
-  <div class="card list-card">${LULL.stories.map((s) => `<button class="list-row" data-act="story:${s.id}"><span>${esc(s.title)}</span><span class="val">${s.mins} min ${chev}</span></button>`).join('')}</div>
+  <div class="card list-card">${LULL.stories.map((s) => `<button class="list-row" data-act="story:${s.id}"><span>${esc(s.title)}</span><span class="val">${s.mins} min ${chev}</span></button>`).join('')}
+    ${LULL.proStories.map((s) => `<button class="list-row" data-act="story:${s.id}"><span>${esc(s.title)} ${proBadge()}</span><span class="val">${s.mins} min ${chev}</span></button>`).join('')}</div>
 
   <div class="section-title"><h3>Tonight's wind-down</h3><span class="faint">${doneN}/${LULL.windDown.length}</span></div>
   <div class="card">
@@ -685,12 +738,12 @@ function pickVoice() {
   return voices.find((v) => /en-ZA/i.test(v.lang)) || voices.find((v) => /natural|neural/i.test(v.name) && /en-GB/i.test(v.lang)) || voices.find((v) => /en-GB/i.test(v.lang)) || voices[0] || null;
 }
 function openStory(id) {
-  const s = LULL.stories.find((x) => x.id === id);
+  const s = allStories().find((x) => x.id === id);
   const sentences = s.text.match(/[^.!?]+[.!?]+/g).map((x) => x.trim());
   const tts = S.settings.voice && 'speechSynthesis' in window;
   const o = openOverlay(`
     <div class="ov-top">${closeBtn()}<span class="pill">${esc(s.title)}</span><span style="width:42px"></span></div>
-    <div class="ov-body top"><div class="story-art">${Scenes.scene(s.id)}</div><div class="reader" id="rd">${sentences.map((t, i) => `<p data-i="${i}">${esc(t)}</p>`).join('')}</div>
+    <div class="ov-body top"><div class="story-art">${Scenes.scene(s.scene || s.id)}</div><div class="reader" id="rd">${sentences.map((t, i) => `<p data-i="${i}">${esc(t)}</p>`).join('')}</div>
     <div class="ov-controls" style="margin-top:20px"><button class="round-btn" id="stT"><svg viewBox="0 0 24 24" id="stI"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg></button></div>
     <p class="faint" style="text-align:center;margin-top:12px">${tts ? 'Read by your device voice. Sounds keep playing after the story.' : 'Read along. Sounds keep playing after the story.'}</p></div>`,
     () => { gen++; window.speechSynthesis?.cancel(); });
@@ -733,9 +786,10 @@ function openStory(id) {
 
 /* Lesson reader */
 function openLesson(id) {
-  const l = LULL.lessons.find((x) => x.id === id), n = LULL.lessons.indexOf(l) + 1;
+  const course = isSteady(id) ? LULL.steady : LULL.lessons;
+  const l = course.find((x) => x.id === id), n = course.indexOf(l) + 1;
   const toolBtn = { pause: ['Try the Pause tool', 'pause'], surf: ['Practise an urge surf', 'surf'], mindful: ['Try a mindful bite', 'mindful'], breathe: ['1-minute Quick reset', 'breath:sigh:1'], sleep: ['Go to Sleep', 'tab:sleep'], journey: ['Open Journey', 'tab:journey'] }[l.tool];
-  const o = openOverlay(`<div class="ov-top">${closeBtn()}<span class="pill">Day ${n} of ${LULL.lessons.length}</span><span style="width:42px"></span></div>
+  const o = openOverlay(`<div class="ov-top">${closeBtn()}<span class="pill">${course === LULL.steady ? 'Steady · ' : ''}Day ${n} of ${course.length}</span><span style="width:42px"></span></div>
     <div class="ov-body top fadein"><h2>${esc(l.title)}</h2><p class="faint" style="margin-top:6px">${l.mins} min read</p>
       <div class="lesson-body">${l.body.map((p) => `<p>${esc(p)}</p>`).join('')}</div>
       <div class="try"><b>Try this</b><p style="margin-top:6px">${esc(l.tryThis)}</p></div>
@@ -792,7 +846,7 @@ function renderJourney() {
   const log = [
     ...S.cravings.map((c) => ({ ts: c.ts, ic: { passed: '🌤️', swapped: '🔄', mindful: '🍫', ate: '🫶', fed: '🥪' }[c.outcome] || '⏸️', t: c.practice ? 'Practice urge surf' : `Craving ${c.urge}/10${c.after != null ? ` → ${c.after}` : ''}`, s: [c.outcome === 'ate' ? 'Ate it, logged honestly' : c.outcome === 'passed' ? 'Urge passed' : c.outcome === 'swapped' ? `Swap: ${c.swap}` : c.outcome === 'mindful' ? 'Ate mindfully' : c.outcome === 'fed' ? 'Real hunger, ate a meal' : '', c.trigger].filter(Boolean).join(' · ') })),
     ...S.checkins.map((c) => ({ ts: c.ts, ic: MOODS[c.mood - 1], t: `Check-in · stress ${c.stress}/5`, s: [c.feelings?.join(', '), c.note].filter(Boolean).join(' · ') })),
-    ...S.sessions.filter((s) => s.kind !== 'surf').map((s) => ({ ts: s.ts, ic: { breathe: '🫧', story: '🌙', lesson: '📖', mindful: '🍓' }[s.kind] || '✨', t: s.kind === 'breathe' ? `${LULL.patterns.find((p) => p.id === s.ref)?.name} · ${Math.max(1, Math.round(s.mins))} min` : s.kind === 'story' ? LULL.stories.find((x) => x.id === s.ref)?.title : s.kind === 'lesson' ? `Lesson: ${LULL.lessons.find((x) => x.id === s.ref)?.title}` : 'Mindful bite', s: '' })),
+    ...S.sessions.filter((s) => s.kind !== 'surf').map((s) => ({ ts: s.ts, ic: { breathe: '🫧', story: '🌙', lesson: '📖', mindful: '🍓' }[s.kind] || '✨', t: s.kind === 'breathe' ? `${LULL.patterns.find((p) => p.id === s.ref)?.name} · ${Math.max(1, Math.round(s.mins))} min` : s.kind === 'story' ? allStories().find((x) => x.id === s.ref)?.title : s.kind === 'lesson' ? `Lesson: ${allLessons().find((x) => x.id === s.ref)?.title}` : 'Mindful bite', s: '' })),
   ].sort((a, b) => b.ts - a.ts).slice(0, 25);
 
   return `
@@ -805,6 +859,10 @@ function renderJourney() {
 
   <div class="section-title"><h3>What Lull has noticed</h3></div>
   <div class="card stack">${ins.length ? ins.map(([ic, t]) => `<div class="insight"><span class="ic">${ic}</span><p>${t}</p></div>`).join('') : `<div class="empty"><span class="e">🔭</span>Use Pause a few times, log your sleep and check in. Personal insights show up here, like how your sleep affects your cravings.</div>`}</div>
+
+  <button class="card sos-card insights90" data-act="insights90" style="margin-top:12px">
+    <span class="ring" style="background:rgba(156,140,242,.22)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span>
+    <div><h3>90-day insights ${proBadge()}</h3><p class="muted small">Three months of sleep, mood and cravings side by side, with the trends that matter.</p></div></button>
 
   <div class="section-title"><h3>Mood · last 14 days</h3></div>
   <div class="card"><div class="bars">${moodDays.map((m) => `<div class="bar"><i style="height:0;background:${m.v ? moodCol(m.v) : 'var(--card-hi)'}" data-h="${m.v ? (m.v / 5) * 100 : 3}%"></i><small>${m.d.toLocaleDateString('en-ZA', { weekday: 'narrow' })}</small></div>`).join('')}</div></div>
@@ -823,6 +881,70 @@ function renderJourney() {
   <div class="card">${log.length ? log.map((x) => `<div class="log-item"><span class="ic">${x.ic}</span><div><b style="font-weight:500">${esc(x.t)}</b><br><small>${fmtDay(x.ts)} · ${fmtTime(x.ts)}${x.s ? ' · ' + esc(x.s) : ''}</small></div></div>`).join('') : '<div class="empty"><span class="e">🌱</span>Nothing yet. Your story starts with one pause.</div>'}</div>`;
 }
 
+/* 90-day insights (Pro): three 30-day blocks and 13 weeks, side by side. */
+function openInsights90() {
+  const now = Date.now(), DAY = 86400000, start = now - 90 * DAY;
+  const tsOfDate = (d) => new Date(d + 'T12:00').getTime();
+  const cr = S.cravings.filter((c) => !c.practice && c.ts >= start);
+  const ci = S.checkins.filter((c) => c.ts >= start);
+  const sl = S.sleep.filter((s) => tsOfDate(s.date) >= start);
+  const se = S.sessions.filter((s) => s.ts >= start);
+  const block = (ts) => Math.min(2, Math.floor((ts - start) / (30 * DAY)));
+  const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
+  const blocks = [0, 1, 2].map((b) => ({
+    cravings: cr.filter((c) => block(c.ts) === b).length,
+    handled: (() => { const l = cr.filter((c) => block(c.ts) === b); return l.length ? Math.round((l.filter((c) => c.outcome !== 'ate').length / l.length) * 100) : null; })(),
+    sleep: avg(sl.filter((s) => block(tsOfDate(s.date)) === b).map(sleepHours)),
+    quality: avg(sl.filter((s) => block(tsOfDate(s.date)) === b).map((s) => s.q)),
+    mood: avg(ci.filter((c) => block(c.ts) === b).map((c) => c.mood)),
+    stress: avg(ci.filter((c) => block(c.ts) === b).map((c) => c.stress)),
+    calm: Math.round(se.filter((s) => block(s.ts) === b).reduce((a, s) => a + (s.mins || 0), 0)),
+  }));
+  const weeks = Array.from({ length: 13 }, (_, w) => { const a = now - (13 - w) * 7 * DAY, z = a + 7 * DAY; return { a, n: cr.filter((c) => c.ts >= a && c.ts < z).length, h: avg(sl.filter((s) => { const t = tsOfDate(s.date); return t >= a && t < z; }).map(sleepHours)) }; });
+  const wmax = Math.max(1, ...weeks.map((w) => w.n));
+  const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], WDL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const byWd = WD.map((_, i) => ({ n: cr.filter((c) => new Date(c.ts).getDay() === i).length, m: avg(ci.filter((c) => new Date(c.ts).getDay() === i).map((c) => c.mood)) }));
+  const wdMax = Math.max(1, ...byWd.map((x) => x.n));
+  const fmt = (v, d = 1, u = '') => (v == null ? '–' : v.toFixed(d) + u);
+  const label = ['Days 1–30', 'Days 31–60', 'Days 61–90'];
+
+  const notes = [];
+  const [f, , l] = blocks;
+  if (f.cravings >= 3 && l.cravings >= 0 && cr.length >= 6) {
+    const ch = Math.round(((l.cravings - f.cravings) / f.cravings) * 100);
+    notes.push(ch < 0 ? `Cravings are <b>down ${-ch}%</b> from your first 30 days to your last 30. The loop is loosening.` : ch > 0 ? `Cravings are <b>up ${ch}%</b> on your first 30 days. A tough stretch; your Steady plan and Pause are there for it.` : 'Your cravings have held steady over three months.');
+  }
+  if (f.sleep != null && l.sleep != null) notes.push(`Average sleep went from <b>${fmtDur(f.sleep * 60)}</b> to <b>${fmtDur(l.sleep * 60)}</b>.`);
+  if (f.mood != null && l.mood != null && Math.abs(l.mood - f.mood) >= 0.2) notes.push(`Your mood check-ins are <b>${l.mood > f.mood ? 'higher' : 'lower'}</b> lately (${f.mood.toFixed(1)} → ${l.mood.toFixed(1)} out of 5).`);
+  const worst = byWd.reduce((b, x, i) => (x.n > byWd[b].n ? i : b), 0);
+  if (byWd[worst].n >= 3) notes.push(`<b>${WDL[worst]}</b> is your hardest day for cravings (${byWd[worst].n} in 90 days). Plan something kind for it.`);
+  const moodDays = byWd.map((x, i) => [x.m, i]).filter((x) => x[0] != null);
+  if (moodDays.length >= 3) { const best = moodDays.sort((a, b) => b[0] - a[0])[0]; notes.push(`You feel best on <b>${WDL[best[1]]}s</b> (average mood ${best[0].toFixed(1)}/5).`); }
+  const sw = weeks.filter((w) => w.h != null);
+  const shortW = sw.filter((w) => w.h < 7), goodW = sw.filter((w) => w.h >= 7);
+  if (shortW.length >= 2 && goodW.length >= 2) { const a = avg(shortW.map((w) => w.n)), b = avg(goodW.map((w) => w.n)); notes.push(`In weeks you averaged under 7 hours you had <b>${a.toFixed(1)}</b> cravings, vs <b>${b.toFixed(1)}</b> in well-slept weeks.`); }
+
+  const row = (name, key, d, u) => `<tr><td>${name}</td>${blocks.map((b) => `<td>${typeof b[key] === 'number' ? (d == null ? b[key] + (u || '') : b[key].toFixed(d) + (u || '')) : '–'}</td>`).join('')}</tr>`;
+  openOverlay(`<div class="ov-top">${closeBtn()}<span class="pill">90-day insights</span><span style="width:42px"></span></div>
+    <div class="ov-body top fadein" style="text-align:left">
+      <h2>Your last 90 days</h2><p class="faint" style="margin-top:6px">${new Date(start).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })} to today · ${cr.length} cravings, ${sl.length} nights, ${ci.length} check-ins</p>
+      <div class="card stack" style="margin-top:16px">${notes.length ? notes.map((t) => `<div class="insight"><span class="ic">•</span><p>${t}</p></div>`).join('') : '<div class="empty">Keep logging sleep, check-ins and cravings. Trends show up here once there are a few weeks to compare.</div>'}</div>
+      <div class="section-title"><h3>Month by month</h3></div>
+      <div class="card"><table class="tbl90"><thead><tr><th></th>${label.map((x) => `<th>${x}</th>`).join('')}</tr></thead><tbody>
+        ${row('Cravings', 'cravings')}${row('Handled on purpose', 'handled', null, '%')}${row('Avg sleep', 'sleep', 1, 'h')}${row('Sleep quality', 'quality', 1, '/5')}${row('Mood', 'mood', 1, '/5')}${row('Stress', 'stress', 1, '/5')}${row('Calm minutes', 'calm')}
+      </tbody></table></div>
+      <div class="section-title"><h3>Cravings · 13 weeks</h3></div>
+      <div class="card"><div class="bars">${weeks.map((w) => `<div class="bar"><small style="color:var(--muted)">${w.n || ''}</small><i style="height:0;background:linear-gradient(180deg,var(--rose),rgba(255,159,184,.25))" data-h="${w.n ? (w.n / wmax) * 100 : 3}%"></i><small>${new Date(w.a).getDate()}</small></div>`).join('')}</div>
+        <p class="faint" style="margin-top:8px">Each bar is a week, labelled by its first day.</p></div>
+      <div class="section-title"><h3>Sleep · 13 weeks</h3></div>
+      <div class="card"><div class="bars">${weeks.map((w) => `<div class="bar"><small style="color:var(--muted)">${w.h ? w.h.toFixed(1) : ''}</small><i style="height:0;background:linear-gradient(180deg,${w.h >= 7 ? 'var(--sky)' : 'var(--peach)'},rgba(143,182,255,.25))" data-h="${w.h ? Math.min(100, (w.h / 10) * 100) : 3}%"></i><small>${new Date(w.a).getDate()}</small></div>`).join('')}</div></div>
+      <div class="section-title"><h3>By day of the week</h3></div>
+      <div class="card"><div class="bars">${byWd.map((x, i) => `<div class="bar"><small style="color:var(--muted)">${x.n || ''}</small><i style="height:0;background:linear-gradient(180deg,var(--lav),rgba(156,140,242,.3))" data-h="${x.n ? (x.n / wdMax) * 100 : 3}%"></i><small>${WD[i].slice(0, 2)}</small></div>`).join('')}</div>
+        <p class="faint" style="margin-top:8px">Cravings per weekday. Mood: ${byWd.map((x, i) => `${WD[i].slice(0, 2)} ${fmt(x.m)}`).join(' · ')}</p></div>
+    </div>`);
+  requestAnimationFrame(() => $$('#overlay [data-h]').forEach((el) => (el.style.height = el.dataset.h)));
+}
+
 /* ================================================================
    SETTINGS & ONBOARDING
    ================================================================ */
@@ -836,7 +958,11 @@ function openSettings() {
     <div class="row between" style="margin-top:12px"><div><b>Vibration</b></div><label class="switch"><input type="checkbox" id="stHap" ${S.settings.haptics ? 'checked' : ''}><i></i></label></div>
     <button class="btn primary block" id="stSave" style="margin-top:18px">Save</button>
 
-    <div class="card help" style="margin-top:22px"><b>🧡 If you're struggling</b>
+    <button class="card pro-row" id="proRow" data-act="pro" style="margin-top:22px">
+      <div><b>NextWave Pro</b><p class="faint">${isPro() ? 'Lull Pro is unlocked on this device. Thank you.' : 'Extra stories, signature mixes, the Steady course and 90-day insights. R79 once-off.'}</p></div>
+      <span class="link">${isPro() ? 'Manage' : 'Get Pro'}</span></button>
+
+    <div class="card help" style="margin-top:12px"><b>🧡 If you're struggling</b>
       <p class="muted small" style="margin-top:6px">Lull is a self-help tool, not a treatment. If eating feels out of control, or you're feeling low for a long time, please talk to a doctor, psychologist or dietitian.</p>
       <p class="small" style="margin-top:8px">SADAG helpline: <a href="tel:0800456789" class="link">0800 456 789</a><br>Suicide crisis line: <a href="tel:0800567567" class="link">0800 567 567</a><br><a href="https://www.sadag.org" target="_blank" rel="noopener" class="link">sadag.org</a></p></div>
 
