@@ -91,7 +91,7 @@ function afterRender() {
   if (tab === 'sleep') bindDial();
   // animate bars in from zero
   requestAnimationFrame(() => $$('[data-h]').forEach((el) => (el.style.height = el.dataset.h)));
-  requestAnimationFrame(() => $$('[data-w]').forEach((el) => (el.style.width = el.dataset.w)));
+  requestAnimationFrame(() => $$('[data-w]').forEach((el) => (el.style.width = Math.max(0, Math.min(100, parseFloat(el.dataset.w) || 0)) + '%'))); // never past the track
 }
 $('#tabbar').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { buzz(10); go(b.dataset.tab); } });
 
@@ -192,7 +192,8 @@ function windDownBanner() {
 
 function renderToday() {
   const ci = todayCheckin();
-  const done = S.lessonsDone.length, total = LULL.lessons.length;
+  // Only Unhook lessons count here; Steady lessons have their own card.
+  const done = LULL.lessons.filter((l) => S.lessonsDone.includes(l.id)).length, total = LULL.lessons.length;
   const nl = nextLesson();
   const q = LULL.quotes[(new Date().getDate()) % LULL.quotes.length];
   const tiles = nowTiles();

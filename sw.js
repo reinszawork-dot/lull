@@ -1,5 +1,5 @@
 /* Lull service worker: offline app shell. */
-const VERSION = 'lull-v7';
+const VERSION = 'lull-v8';
 const SHELL = ['./', 'index.html', 'styles.css', 'hush.css', 'icons.js', 'hush.js', 'tap.js', 'content.js', 'pro-content.js', 'scenes.js','sound.js', 'app.js', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
