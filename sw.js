@@ -1,6 +1,6 @@
 /* Lull service worker: offline app shell. */
-const VERSION = 'lull-v3';
-const SHELL = ['./', 'index.html', 'styles.css', 'content.js', 'pro-content.js', 'nextwave-pro.js', 'scenes.js','sound.js', 'app.js', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
+const VERSION = 'lull-v7';
+const SHELL = ['./', 'index.html', 'styles.css', 'hush.css', 'icons.js', 'hush.js', 'tap.js', 'content.js', 'pro-content.js', 'scenes.js','sound.js', 'app.js', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', (e) => {

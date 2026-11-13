@@ -34,12 +34,8 @@ const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch
 const buzz = (p = 20) => { if (S.settings.haptics && navigator.vibrate) navigator.vibrate(p); };
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2200); }
 /* ---------- NextWave Pro ---------- */
-NextWavePro.init({
-  app: 'lull', name: 'Lull Pro', price: 'R79 once-off',
-  buyUrl: 'https://payhip.com', // placeholder until the Payhip product exists
-  features: ['3 extra sleep stories', 'Signature soundscape mixes, and save your own', 'Steady: a 7-day course after Unhook', '90-day insights on sleep, mood and cravings'],
-  accent: '#7b68e0',
-});
+/* Lull Pro is free for everyone (no payment). This stand-in keeps the old calls working. */
+window.NextWavePro = { init() {}, open() {}, isPro: () => true, gate: (_f, fn) => fn && fn() };
 const isPro = () => NextWavePro.isPro();
 const proBadge = () => (isPro() ? '' : '<span class="pro-badge">Pro</span>');
 window.addEventListener('nextwave-pro-change', () => { if ($('#overlay').hidden) rerender(); if (!$('#sheet').hidden && $('#proRow')) openSettings(); });
@@ -68,6 +64,11 @@ const surfed = () => S.cravings.filter((c) => c.outcome !== 'ate').length;
 const todayCheckin = () => S.checkins.filter((c) => dk(new Date(c.ts)) === dk()).pop();
 const lastSleep = () => S.sleep.slice().sort((a, b) => a.date.localeCompare(b.date)).pop();
 
+/* ---------- theme tones ---------- */
+const TONE = { '#a99cff': 'lav', '#7fe0c3': 'mint', '#ffc59e': 'peach', '#ff9fb8': 'rose', '#8fb6ff': 'sky' };
+const tc = (h) => (TONE[h] ? `var(--t-${TONE[h]}, ${h})` : h);
+const tv = (h) => (TONE[h] ? getComputedStyle(document.documentElement).getPropertyValue('--t-' + TONE[h]).trim() || h : h);
+
 /* ---------- navigation ---------- */
 let tab = 'today';
 const views = { today: renderToday, breathe: renderBreathe, sleep: renderSleep, journey: renderJourney };
@@ -78,6 +79,8 @@ function go(t) {
   const v = $('#view');
   v.style.animation = 'none'; v.offsetHeight; v.style.animation = '';
   v.innerHTML = views[t]();
+  v.classList.remove('enter'); v.offsetHeight; v.classList.add('enter');
+  clearTimeout(go.t); go.t = setTimeout(() => v.classList.remove('enter'), 1400);
   window.scrollTo({ top: 0 });
   afterRender();
 }
@@ -105,7 +108,6 @@ const actions = {
   mymix: (i) => { const m = S.mixes[Number(i)]; if (m) applyMix(m.mix, m.name); },
   delmix: (i) => { S.mixes.splice(Number(i), 1); save(); rerender(); toast('Mix removed'); },
   insights90: () => NextWavePro.gate('90-day insights', openInsights90),
-  pro: () => NextWavePro.open(),
   tab: (t) => go(t),
   checkin: (m) => openCheckin(Number(m)),
   sleeplog: () => openSleepLog(),
@@ -224,7 +226,7 @@ function renderToday() {
 
   <div class="section-title"><h3>For right now</h3></div>
   <div class="tiles">
-    ${tiles.map((t) => `<button class="tile" data-act="${t.act}"><span class="dot" style="background:${t.color}"></span><span class="emoji">${t.emoji}</span><div><b>${esc(t.title)}</b><small>${esc(t.sub)}</small></div></button>`).join('')}
+    ${tiles.map((t) => `<button class="tile" data-act="${t.act}"><span class="dot" style="background:${tc(t.color)}"></span><span class="emoji">${t.emoji}</span><div><b>${esc(t.title)}</b><small>${esc(t.sub)}</small></div></button>`).join('')}
   </div>
 
   <div class="section-title"><h3>Unhook · 10-day course</h3><span class="faint">${done}/${total}</span></div>
@@ -241,10 +243,10 @@ function renderToday() {
 
   <div class="section-title"><h3>Quick tools</h3></div>
   <div class="tiles">
-    <button class="tile" data-act="breath:sigh:1"><span class="dot" style="background:#7fe0c3"></span><span class="emoji">🌬️</span><div><b>1-minute reset</b><small>When it's all too much</small></div></button>
-    <button class="tile" data-act="surf"><span class="dot" style="background:#ff9fb8"></span><span class="emoji">🌊</span><div><b>Urge surf</b><small>Ride out a craving</small></div></button>
-    <button class="tile" data-act="sleeplog"><span class="dot" style="background:#8fb6ff"></span><span class="emoji">🛏️</span><div><b>Log sleep</b><small>${ls ? `Last: ${fmtDur(sleepHours(ls) * 60)}` : 'How did you sleep?'}</small></div></button>
-    <button class="tile" data-act="mindful"><span class="dot" style="background:#ffc59e"></span><span class="emoji">🍓</span><div><b>Mindful bite</b><small>Eat it slowly, guilt-free</small></div></button>
+    <button class="tile" data-act="breath:sigh:1"><span class="dot" style="background:var(--t-mint, #7fe0c3)"></span><span class="emoji">🌬️</span><div><b>1-minute reset</b><small>When it's all too much</small></div></button>
+    <button class="tile" data-act="surf"><span class="dot" style="background:var(--t-rose, #ff9fb8)"></span><span class="emoji">🌊</span><div><b>Urge surf</b><small>Ride out a craving</small></div></button>
+    <button class="tile" data-act="sleeplog"><span class="dot" style="background:var(--t-sky, #8fb6ff)"></span><span class="emoji">🛏️</span><div><b>Log sleep</b><small>${ls ? `Last: ${fmtDur(sleepHours(ls) * 60)}` : 'How did you sleep?'}</small></div></button>
+    <button class="tile" data-act="mindful"><span class="dot" style="background:var(--t-peach, #ffc59e)"></span><span class="emoji">🍓</span><div><b>Mindful bite</b><small>Eat it slowly, guilt-free</small></div></button>
   </div>`;
 }
 
@@ -287,7 +289,7 @@ function renderBreathe() {
   <section class="hero"><h2>Breathe</h2><p>Your breath is the remote control for your nervous system. Pick one and follow the light.</p></section>
   ${LULL.patterns.map((p) => `
     <div class="card">
-      <div class="pattern"><span class="orbmini" style="background:radial-gradient(circle at 35% 30%,#fff9,${p.color} 45%,transparent 75%);box-shadow:0 0 24px -4px ${p.color}"></span>
+      <div class="pattern"><span class="orbmini" style="background:radial-gradient(circle at 35% 30%,#fff9,${tc(p.color)} 45%,transparent 75%);box-shadow:0 0 24px -4px ${tc(p.color)}"></span>
         <div><b style="font-size:17px">${esc(p.name)}</b> <span class="pill">${esc(p.tag)}</span><small style="margin-top:4px">${esc(p.desc)}</small>
         <small class="faint" style="margin-top:4px">${p.phases.map((x) => x[2]).join(' · ')} seconds</small></div></div>
       <div class="dur" style="margin-top:12px">${[1, 3, 5, 10].map((m) => `<button class="btn sm ${m === 3 ? 'primary' : ''}" data-act="breath:${p.id}:${m}">${m} min</button>`).join('')}</div>
@@ -305,7 +307,7 @@ function openBreath(pid, mins) {
   const o = openOverlay(`
     <div class="ov-top">${closeBtn()}<span class="pill">${esc(p.name)} · ${mins} min</span><span style="width:42px"></span></div>
     <div class="ov-body" id="brBody">
-      <div class="orb-wrap" style="--orb:${p.color}"><span class="halo"></span><span class="halo h2"></span><div class="orb" id="orb"></div>
+      <div class="orb-wrap" style="--orb:${tc(p.color)}"><span class="halo"></span><span class="halo h2"></span><div class="orb" id="orb"></div>
         <div class="orb-label"><b id="phLabel">Get comfortable</b><span id="phCount"></span></div></div>
       <div class="time-bar"><div class="progress"><i id="brProg" style="width:0;transition:width 1s linear"></i></div><p class="faint" id="brLeft" style="margin-top:6px">${mins}:00 left</p></div>
       <div class="ov-controls"><button class="round-btn" id="brToggle" aria-label="Pause"><svg viewBox="0 0 24 24" id="brIcon"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg></button></div>
@@ -431,7 +433,7 @@ function openPause(opt = {}) {
       ${needs.map((n) => `<p class="faint" style="margin-top:18px;text-transform:uppercase;letter-spacing:.08em">${NEEDS.find((x) => x[0] === n)?.[1] || 'Hungry'}</p>${LULL.swaps[n].map((s) => `<button class="choice" data-swap="${esc(s)}"><span class="ic">→</span><div><b style="font-weight:500">${esc(s)}</b></div></button>`).join('')}`).join('')}</div>`;
     },
     mindful: () => `<div class="fadein" style="width:100%;text-align:left"><h2>Eat it like you mean it</h2><p class="lead">No guilt allowed. Just attention.</p>
-      <ol style="color:#d6d8f0;line-height:1.8;padding-left:20px;margin-top:16px">${LULL.mindfulSteps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
+      <ol style="color:var(--text-2, #d6d8f0);line-height:1.8;padding-left:20px;margin-top:16px">${LULL.mindfulSteps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
       <button class="btn peach block" data-out="mindful" style="margin-top:18px">Okay, I'll eat it mindfully</button></div>`,
     done: () => {
       const msg = { passed: ['🌤️', 'You surfed it.', 'Every urge you ride out makes the next one a little weaker. That is real rewiring.'],
@@ -495,7 +497,7 @@ function openPause(opt = {}) {
       g.beginPath(); for (let i = 0; i <= 100; i++) { const x = i / 100; i ? g.lineTo(px(x), py(x)) : g.moveTo(px(x), py(x)); }
       g.strokeStyle = 'rgba(255,255,255,.15)'; g.lineWidth = 2 * dpr; g.stroke();
       g.beginPath(); for (let i = 0; i <= prog * 100; i++) { const x = i / 100; i ? g.lineTo(px(x), py(x)) : g.moveTo(px(x), py(x)); }
-      const grad = g.createLinearGradient(0, 0, W, 0); grad.addColorStop(0, '#ff9fb8'); grad.addColorStop(1, '#a99cff');
+      const grad = g.createLinearGradient(0, 0, W, 0); grad.addColorStop(0, tv('#ff9fb8')); grad.addColorStop(1, tv('#a99cff'));
       g.strokeStyle = grad; g.lineWidth = 3.5 * dpr; g.lineCap = 'round'; g.stroke();
       const dx = px(prog), dy = py(prog), pulse = 1 + Math.sin(now / 300) * 0.2;
       g.beginPath(); g.arc(dx, dy, 14 * dpr * pulse, 0, 7); g.fillStyle = 'rgba(255,159,184,.25)'; g.fill();
@@ -571,18 +573,18 @@ function dialInner() {
     const r1 = major ? 76 : hour ? 82 : 86, r2 = 92;
     ticks += `<line x1="${150 + r1 * Math.sin(a)}" y1="${150 - r1 * Math.cos(a)}" x2="${150 + r2 * Math.sin(a)}" y2="${150 - r2 * Math.cos(a)}" stroke="#fff" stroke-opacity="${major ? 0.9 : hour ? 0.45 : 0.18}" stroke-width="${major ? 2 : 1.4}" stroke-linecap="round"/>`;
   }
-  const lbl = (txt, a, r = 62, size = 12, op = 0.95) => `<text x="${150 + r * Math.sin(a)}" y="${150 - r * Math.cos(a) + 4}" text-anchor="middle" font-size="${size}" fill="#fff" fill-opacity="${op}" font-family="Outfit, sans-serif">${txt}</text>`;
+  const lbl = (txt, a, r = 62, size = 12, op = 0.95) => `<text x="${150 + r * Math.sin(a)}" y="${150 - r * Math.cos(a) + 4}" text-anchor="middle" font-size="${size}" fill="#fff" fill-opacity="${op}" style="font-family:var(--sans)">${txt}</text>`;
   const small = [2, 4, 8, 10, 14, 16, 20, 22].map((h) => lbl(h, (h / 24) * Math.PI * 2, 66, 8, 0.3)).join('');
-  return `<defs><linearGradient id="arcG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6a58c8"/><stop offset="1" stop-color="#b6a8ff"/></linearGradient>
-      <radialGradient id="faceG" cx="50%" cy="40%"><stop offset="0" stop-color="#2e2440"/><stop offset="1" stop-color="#17111f"/></radialGradient></defs>
+  return `<defs><linearGradient id="arcG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--dial-a, #6a58c8)"/><stop offset="1" style="stop-color:var(--dial-b, #b6a8ff)"/></linearGradient>
+      <radialGradient id="faceG" cx="50%" cy="40%"><stop offset="0" style="stop-color:var(--dial-face-a, #2e2440)"/><stop offset="1" style="stop-color:var(--dial-face-b, #17111f)"/></radialGradient></defs>
     <circle cx="150" cy="150" r="${DIAL_R + 18}" fill="url(#faceG)"/>
     <circle cx="150" cy="150" r="${DIAL_R}" fill="none" stroke="#fff" stroke-opacity=".05" stroke-width="30"/>
-    <path d="M${bx} ${by} A ${DIAL_R} ${DIAL_R} 0 ${span > 720 ? 1 : 0} 1 ${wx} ${wy}" fill="none" stroke="url(#arcG)" stroke-width="30" stroke-linecap="round" style="filter:drop-shadow(0 0 10px rgba(156,140,242,.55))"/>
+    <path d="M${bx} ${by} A ${DIAL_R} ${DIAL_R} 0 ${span > 720 ? 1 : 0} 1 ${wx} ${wy}" fill="none" stroke="url(#arcG)" stroke-width="30" stroke-linecap="round" style="filter:drop-shadow(0 0 10px var(--dial-glow, rgba(156,140,242,.55)))"/>
     ${ticks}${lbl('00', 0)}${lbl('06', Math.PI / 2)}${lbl('12', Math.PI)}${lbl('18', Math.PI * 1.5)}${small}
-    <path d="M150 112 a7 7 0 1 0 6 10 a6 6 0 0 1 -6 -10z" fill="#9c8cf2"/>
+    <path d="M150 112 a7 7 0 1 0 6 10 a6 6 0 0 1 -6 -10z" style="fill:var(--dial-moon, #9c8cf2)"/>
     <g transform="translate(150 186)" stroke="#f2c27b" stroke-width="1.4" stroke-linecap="round"><circle r="4.5" fill="#f2c27b"/>${[0, 45, 90, 135, 180, 225, 270, 315].map((d) => `<line x1="${7 * Math.sin(d * Math.PI / 180)}" y1="${7 * Math.cos(d * Math.PI / 180)}" x2="${10 * Math.sin(d * Math.PI / 180)}" y2="${10 * Math.cos(d * Math.PI / 180)}"/>`).join('')}</g>
-    <g class="knob" data-knob="bedtime" transform="translate(${bx} ${by})"><circle r="17" fill="#f4f0fb" style="filter:drop-shadow(0 4px 10px rgba(0,0,0,.45))"/><path d="M2 -8 a8 8 0 1 0 6 12 a7 7 0 0 1 -6 -12z" fill="#2a1f40"/></g>
-    <g class="knob" data-knob="wake" transform="translate(${wx} ${wy})"><circle r="17" fill="#2a1f40" stroke="#f4f0fb" stroke-width="2" style="filter:drop-shadow(0 4px 10px rgba(0,0,0,.45))"/><path d="M-6 3 a6 6 0 0 1 12 0 v-3 a6 6 0 0 0 -12 0z M-7 3 h14 M-1.6 6 a1.6 1.6 0 0 0 3.2 0" fill="none" stroke="#f4f0fb" stroke-width="1.6" stroke-linecap="round"/></g>`;
+    <g class="knob" data-knob="bedtime" transform="translate(${bx} ${by})"><circle r="17" style="fill:var(--knob-light, #f4f0fb);filter:drop-shadow(0 4px 10px rgba(0,0,0,.45))"/><path d="M2 -8 a8 8 0 1 0 6 12 a7 7 0 0 1 -6 -12z" style="fill:var(--knob-dark, #2a1f40)"/></g>
+    <g class="knob" data-knob="wake" transform="translate(${wx} ${wy})"><circle r="17" stroke-width="2" style="fill:var(--knob-dark, #2a1f40);stroke:var(--knob-light, #f4f0fb);filter:drop-shadow(0 4px 10px rgba(0,0,0,.45))"/><path d="M-6 3 a6 6 0 0 1 12 0 v-3 a6 6 0 0 0 -12 0z M-7 3 h14 M-1.6 6 a1.6 1.6 0 0 0 3.2 0" fill="none" stroke="#f4f0fb" stroke-width="1.6" stroke-linecap="round"/></g>`;
 }
 function dialSummary() {
   let span = toMin(S.wake) - toMin(S.bedtime); if (span <= 0) span += 1440;
@@ -838,7 +840,7 @@ function renderJourney() {
   const bmax = Math.max(1, ...buckets);
   // mood last 14 days
   const moodDays = Array.from({ length: 14 }, (_, k) => { const d = daysAgo(13 - k), key = dk(d); const list = S.checkins.filter((c) => dk(new Date(c.ts)) === key); return { d, v: list.length ? list.reduce((a, c) => a + c.mood, 0) / list.length : 0 }; });
-  const moodCol = (v) => ['#ff8aa8', '#ffb38a', '#ffd88a', '#a9e0a0', '#7fe0c3'][Math.round(v) - 1] || 'transparent';
+  const moodCol = (v) => ['var(--m1, #ff8aa8)', 'var(--m2, #ffb38a)', 'var(--m3, #ffd88a)', 'var(--m4, #a9e0a0)', 'var(--m5, #7fe0c3)'][Math.round(v) - 1] || 'transparent';
   // sleep last 7 nights
   const sleep7 = Array.from({ length: 7 }, (_, k) => { const d = daysAgo(6 - k); const s = S.sleep.find((x) => x.date === dk(d)); return { d, h: s ? sleepHours(s) : 0 }; });
   const needCounts = NEEDS.map(([id, label]) => [label, cr.filter((c) => (c.needs || []).includes(id)).length]);
@@ -956,11 +958,11 @@ function openSettings() {
     ${voices.length ? `<label class="field"><span>Story voice</span><select class="input" id="stVoiceName"><option value="">Automatic</option>${voices.map((v) => `<option ${v.name === S.settings.voiceName ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}</select></label>` : ''}
     <div class="row between" style="margin-top:16px"><div><b>Soft chime</b></div><label class="switch"><input type="checkbox" id="stChime" ${S.settings.chime ? 'checked' : ''}><i></i></label></div>
     <div class="row between" style="margin-top:12px"><div><b>Vibration</b></div><label class="switch"><input type="checkbox" id="stHap" ${S.settings.haptics ? 'checked' : ''}><i></i></label></div>
+    <div class="field"><span>Look</span><div class="look-pick" role="radiogroup" aria-label="Look">
+      <button class="look-opt ${LullLook.get() === 'hush' ? 'on' : ''}" data-look="hush" role="radio" aria-checked="${LullLook.get() === 'hush'}"><i class="sw sw-hush"></i><b>Hush</b><small>Moonlit hills, glass</small></button>
+      <button class="look-opt ${LullLook.get() === 'plum' ? 'on' : ''}" data-look="plum" role="radio" aria-checked="${LullLook.get() === 'plum'}"><i class="sw sw-plum"></i><b>Plum night</b><small>The original look</small></button>
+    </div></div>
     <button class="btn primary block" id="stSave" style="margin-top:18px">Save</button>
-
-    <button class="card pro-row" id="proRow" data-act="pro" style="margin-top:22px">
-      <div><b>NextWave Pro</b><p class="faint">${isPro() ? 'Lull Pro is unlocked on this device. Thank you.' : 'Extra stories, signature mixes, the Steady course and 90-day insights. R79 once-off.'}</p></div>
-      <span class="link">${isPro() ? 'Manage' : 'Get Pro'}</span></button>
 
     <div class="card help" style="margin-top:12px"><b>🧡 If you're struggling</b>
       <p class="muted small" style="margin-top:6px">Lull is a self-help tool, not a treatment. If eating feels out of control, or you're feeling low for a long time, please talk to a doctor, psychologist or dietitian.</p>
@@ -974,6 +976,11 @@ function openSettings() {
       if ($('#stVoiceName')) S.settings.voiceName = $('#stVoiceName').value;
       save(); closeSheet(); rerender(); toast('Saved');
     };
+    $$('.look-opt').forEach((b) => (b.onclick = () => {
+      LullLook.set(b.dataset.look);
+      $$('.look-opt').forEach((x) => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-checked', on); });
+      rerender();
+    }));
     $('#stExp').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' })); a.download = `lull-backup-${dk()}.json`; a.click(); };
     $('#stImp').onchange = async (e) => { try { const d = JSON.parse(await e.target.files[0].text()); if (!d.checkins) throw 0; S = Object.assign(defaults(), d); save(); closeSheet(); go(tab); toast('Backup restored'); } catch { toast('That file did not look like a Lull backup'); } };
     $('#stWipe').onclick = () => { if (confirm('Erase all Lull data on this device? This cannot be undone.')) { localStorage.removeItem(KEY); location.reload(); } };
@@ -987,7 +994,7 @@ function onboarding() {
   const o = openOverlay('<div class="ov-body" id="ob"></div>');
   const draw = () => {
     const b = $('#ob', o);
-    if (st.step === 0) b.innerHTML = `<div class="fadein"><div class="orb-wrap" style="--orb:#a99cff;width:200px;margin-bottom:10px"><span class="halo"></span><div class="orb" style="transform:scale(.7);animation:miniBreathe 6s ease-in-out infinite"></div></div>
+    if (st.step === 0) b.innerHTML = `<div class="fadein"><div class="orb-wrap" style="--orb:var(--t-lav, #a99cff);width:200px;margin-bottom:10px"><span class="halo"></span><div class="orb" style="transform:scale(.7);animation:miniBreathe 6s ease-in-out infinite"></div></div>
       <h2>Welcome to Lull</h2><p class="lead">A calmer mind, fewer stress cravings and better sleep. Free, private, and it works offline.</p>
       <button class="btn primary block" data-n style="margin-top:28px">Let's begin</button></div>`;
     if (st.step === 1) b.innerHTML = `<div class="fadein" style="width:100%"><h2>What brings you here?</h2><p class="lead">Pick any. Lull adapts to you.</p>
@@ -1030,7 +1037,7 @@ $('#nowPlaying').onclick = (e) => { if (e.target.id === 'npStop') { Sound.stopAl
 
 /* ---------- sparkles ---------- */
 function sparkle(host) {
-  const colors = ['#a99cff', '#7fe0c3', '#ffc59e', '#ff9fb8', '#8fb6ff', '#fff'];
+  const colors = ['#a99cff', '#7fe0c3', '#ffc59e', '#ff9fb8', '#8fb6ff'].map(tv).concat('#fff');
   for (let i = 0; i < 28; i++) {
     const s = document.createElement('span');
     const a = Math.random() * Math.PI * 2, d = 80 + Math.random() * 160;
@@ -1054,6 +1061,7 @@ function sparkle(host) {
   function frame(t) {
     if (!document.hidden) {
       g.clearRect(0, 0, c.width, c.height);
+      if (LullLook.get() !== 'plum') { requestAnimationFrame(frame); return; }
       for (const s of stars) { const a = 0.35 + 0.5 * Math.sin(s.p + t / 1000 * s.s) ** 2; g.globalAlpha = a; g.beginPath(); g.arc(s.x, s.y, s.r, 0, 6.28); g.fillStyle = '#fff'; g.fill(); }
       if (!shoot && Math.random() < 0.002) shoot = { x: Math.random() * c.width * 0.7, y: Math.random() * c.height * 0.3, l: 0 };
       if (shoot) {

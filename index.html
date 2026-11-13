@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Lull: Calm, Cravings &amp; Sleep</title>
   <meta name="description" content="Lull: a free, private app for stress, stress eating and sleep. Breathing, craving SOS, sleep sounds and stories." />
-  <meta name="theme-color" content="#0d0f1f" />
+  <meta name="theme-color" content="#111923" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="manifest" href="manifest.webmanifest" />
@@ -15,8 +15,10 @@
   <meta name="apple-mobile-web-app-title" content="Lull" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Fraunces:opsz,wght,SOFT@9..144,300..500,0..100&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="hush.css" />
+  <script>try { if (localStorage.getItem('lull-look') !== 'plum') document.documentElement.classList.add('hush'); } catch (e) { document.documentElement.classList.add('hush'); }</script>
 </head>
 <body>
   <div class="sky" aria-hidden="true"><canvas id="stars"></canvas><span class="glow g1"></span><span class="glow g2"></span></div>
@@ -58,7 +60,9 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="nextwave-pro.js"></script>
+  <script src="icons.js"></script>
+  <script src="hush.js"></script>
+  <script src="tap.js"></script>
   <script src="content.js"></script>
   <script src="pro-content.js"></script>
   <script src="scenes.js"></script>

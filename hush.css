@@ -1,0 +1,248 @@
+/* ==========================================================================
+   Lull "Hush": moonlit hills behind frosted glass.
+   Moon gold for calm and progress, ember for the craving tools, mist blue and
+   soft sage as quiet supporting tones. Fraunces (soft) headings, Figtree body.
+   Everything here is scoped to html.hush; "Plum night" uses styles.css alone.
+   ========================================================================== */
+
+/* Icons that replace emoji (both looks) */
+.li { width: 1.1em; height: 1.1em; display: inline-block; vertical-align: -0.2em; flex: none; }
+.tile .emoji, .choice .ic, .insight .ic, .empty .e, .celebrate { line-height: 1; }
+.celebrate .li { stroke-width: 1.2; }
+
+/* Look picker in Settings (both looks) */
+.look-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.look-opt { display: grid; gap: 2px; justify-items: start; text-align: left; padding: 12px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid var(--line); transition: border-color .25s, background .25s, transform .2s; }
+.look-opt:active { transform: scale(.98); }
+.look-opt .sw { width: 34px; height: 34px; border-radius: 50%; margin-bottom: 6px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
+.look-opt .sw-hush { background: radial-gradient(circle at 66% 34%, #f6e6c4 0 18%, transparent 19%), linear-gradient(180deg, #1d2a3b 0%, #121b27 55%, #24303c 56%, #18212b 100%); }
+.look-opt .sw-plum { background: radial-gradient(circle at 50% 30%, #6b4fc4, #221833 70%); }
+.look-opt b { font-size: 15px; }
+.look-opt small { color: var(--muted); font-size: 12px; }
+.look-opt.on { border-color: var(--lav); background: rgba(255,255,255,.09); }
+
+.hush-sky { display: none; }
+
+/* ---------------- Tokens ---------------- */
+html.hush {
+  --bg: #0e141c;
+  --bg2: rgba(17, 24, 33, 0.82);
+  --card: rgba(26, 36, 49, 0.44);
+  --card-solid: #18212d;
+  --card-hi: rgba(38, 50, 66, 0.58);
+  --line: rgba(226, 233, 243, 0.11);
+  --text: #f2efe8;
+  --text-2: #d9dce2;
+  --muted: #b0b8c3;
+  --faint: #828c98;
+  --gold: #ebcf9c;
+  --ember: #ee9e7c;
+  --mist: #9db8d3;
+  --sage: #a6cdbf;
+  --lav: var(--gold);
+  --mint: var(--sage);
+  --green: var(--sage);
+  --peach: #ebc48c;
+  --rose: var(--ember);
+  --sky: var(--mist);
+  --t-lav: #ebcf9c; --t-mint: #93c4b5; --t-peach: #ebc48c; --t-rose: #ee9e7c; --t-sky: #9db8d3;
+  --m1: #e58f7b; --m2: #e8a97e; --m3: #e6c68e; --m4: #b4cba6; --m5: #93c4b5;
+  --dial-a: #c99062; --dial-b: #f3ddb0; --dial-glow: rgba(240, 205, 150, 0.45);
+  --dial-face-a: #1b2634; --dial-face-b: #0f151d; --dial-moon: #ebcf9c;
+  --knob-light: #f5efe3; --knob-dark: #1a2430;
+  --glass-blur: blur(18px) saturate(140%);
+  --shine: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --radius: 26px;
+  --serif: 'Fraunces', Georgia, serif;
+  --sans: 'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --spring: cubic-bezier(0.3, 1.35, 0.5, 1);
+}
+
+/* ---------------- Sky ---------------- */
+html.hush .sky { background: var(--bg); }
+html.hush .sky .glow, html.hush #stars { display: none; }
+html.hush .hush-sky { display: block; position: absolute; inset: 0; overflow: hidden; }
+.hs-grad { position: absolute; inset: 0; transition: opacity 2s; }
+html[data-phase='night'] .hs-grad { background: radial-gradient(120% 55% at 72% 0%, #1f2d40 0%, transparent 62%), linear-gradient(180deg, #121b27 0%, #0e141c 62%, #0c1117 100%); }
+html[data-phase='dawn'] .hs-grad { background: radial-gradient(90% 40% at 30% 78%, rgba(236, 170, 130, 0.55), transparent 70%), linear-gradient(180deg, #1f2840 0%, #3b3f5e 40%, #8a6f7d 72%, #c99481 100%); }
+html[data-phase='day'] .hs-grad { background: radial-gradient(100% 50% at 70% 0%, rgba(214, 228, 240, 0.25), transparent 60%), linear-gradient(180deg, #24405b 0%, #3a5a76 45%, #6f8ca2 85%); }
+html[data-phase='dusk'] .hs-grad { background: radial-gradient(90% 40% at 70% 80%, rgba(224, 140, 110, 0.5), transparent 70%), linear-gradient(180deg, #181c32 0%, #312d4b 42%, #7d5566 75%, #c08070 100%); }
+
+.hs-moon { position: absolute; right: max(8vw, calc(50% - 240px)); top: calc(70px + env(safe-area-inset-top, 0px)); width: clamp(84px, 22vmin, 132px); aspect-ratio: 1; transform: translate3d(0, calc(var(--sy, 0) * 0.06px), 0); }
+.hs-moon svg { position: relative; width: 100%; height: 100%; display: block; animation: moon-bob 14s ease-in-out infinite alternate; }
+.hs-moon .m-dark { fill: rgba(235, 207, 156, 0.07); stroke: rgba(235, 207, 156, 0.12); stroke-width: 0.6; }
+.hs-moon .m-crater { fill: rgba(150, 120, 80, 0.12); }
+.m-halo { position: absolute; inset: -60%; border-radius: 50%; background: radial-gradient(closest-side, rgba(243, 222, 180, 0.28), rgba(243, 222, 180, 0.08) 45%, transparent 75%); animation: halo-breathe 8s ease-in-out infinite alternate; }
+html[data-phase='day'] .hs-moon { opacity: 0.45; }
+html[data-phase='day'] .m-halo { opacity: 0.3; }
+@keyframes moon-bob { to { transform: translateY(8px); } }
+@keyframes halo-breathe { to { transform: scale(1.12); opacity: 0.75; } }
+
+.hs-flies { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hs-hills { position: absolute; left: -2%; width: 104%; bottom: 0; height: 36vh; transform: translate3d(0, calc(var(--sy, 0) * -0.035px), 0); }
+html[data-phase='night'] .hs-hills { --h1: #18222f; --h2: #131c27; --h3: #0e151e; }
+html[data-phase='dawn'] .hs-hills { --h1: #4b4359; --h2: #2f2e43; --h3: #1b1e2c; }
+html[data-phase='day'] .hs-hills { --h1: #3f5a6e; --h2: #2c4456; --h3: #1b2c3a; }
+html[data-phase='dusk'] .hs-hills { --h1: #4a3a52; --h2: #2c2638; --h3: #171724; }
+.hs-hills .h1 { fill: var(--h1); } .hs-hills .h2 { fill: var(--h2); } .hs-hills .h3 { fill: var(--h3); }
+.hs-fog { position: absolute; left: -30%; width: 160%; height: 14vh; border-radius: 50%; background: radial-gradient(closest-side, rgba(220, 230, 240, 0.12), transparent); filter: blur(18px); animation: fog-drift 46s ease-in-out infinite alternate; }
+.hs-fog.f1 { bottom: 24vh; }
+.hs-fog.f2 { bottom: 6vh; height: 12vh; opacity: 0.8; animation-duration: 60s; animation-direction: alternate-reverse; }
+@keyframes fog-drift { to { transform: translateX(14%); } }
+
+/* ---------------- Type ---------------- */
+html.hush body { font-family: var(--sans); letter-spacing: 0.002em; }
+html.hush h1, html.hush h2, html.hush h3, html.hush .stat b, html.hush .urge-num, html.hush .orb-label span, html.hush .dial-sum b, html.hush .bw b {
+  font-family: var(--serif); font-weight: 400; letter-spacing: -0.015em; font-variation-settings: 'SOFT' 100, 'WONK' 0;
+}
+html.hush .hero h2 { font-size: 30px; line-height: 1.15; }
+html.hush .reader p { font-family: var(--serif); font-variation-settings: 'SOFT' 100; color: rgba(242, 239, 232, 0.24); }
+html.hush .reader p.cur { color: var(--text); }
+html.hush .quote { font-family: var(--serif); }
+
+/* ---------------- Glass surfaces ---------------- */
+html.hush .card, html.hush .tile, html.hush .stat, html.hush .showcase, html.hush .halt button, html.hush .choice {
+  background: var(--card);
+  border: 1px solid var(--line);
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shine), 0 14px 34px -22px rgba(0, 0, 0, 0.7);
+}
+html.hush .card { border-radius: var(--radius); }
+html.hush .tile { border-radius: 24px; transition: transform .35s var(--spring), background .3s, border-color .3s; }
+html.hush .tile:hover { background: var(--card-hi); border-color: rgba(235, 207, 156, 0.22); transform: translateY(-3px); }
+html.hush .tile:active { transform: scale(.97); }
+html.hush .tile .emoji { color: var(--text); font-size: 24px; }
+html.hush .tile .dot { opacity: .35; filter: blur(18px); }
+html.hush .time-pill, html.hush .icon-btn, html.hush .pill, html.hush .chip, html.hush .mood, html.hush .lesson-num, html.hush .input, html.hush .seg button.on, html.hush .np-stop, html.hush .round-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--line);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+html.hush .input:focus { border-color: rgba(235, 207, 156, 0.6); box-shadow: 0 0 0 3px rgba(235, 207, 156, 0.12); }
+html.hush select.input option { background: #18212d; }
+html.hush .avatar { color: #2b2213; background: radial-gradient(circle at 35% 30%, #fff8e8, #ebcf9c 55%, #c99a62); box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12), 0 6px 20px -6px rgba(235, 207, 156, 0.6); }
+
+/* ---------------- Buttons ---------------- */
+html.hush .btn { background: rgba(255, 255, 255, 0.07); border-color: var(--line); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); transition: transform .2s var(--spring), background .25s, box-shadow .3s; }
+html.hush .btn:hover { background: rgba(255, 255, 255, 0.11); }
+html.hush .btn.primary { position: relative; overflow: hidden; background: linear-gradient(135deg, #f7e6c4 0%, #e9c88e 55%, #d9a86f 100%); color: #241b0e; font-weight: 600; box-shadow: 0 12px 30px -12px rgba(233, 200, 142, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.6); }
+html.hush .btn.primary::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.45) 50%, transparent 65%); transform: translateX(-120%); transition: transform .8s var(--ease); }
+html.hush .btn.primary:hover::after { transform: translateX(120%); }
+html.hush .btn.mint { background: linear-gradient(135deg, #cfe6dc, #9cc7b6); color: #13261f; }
+html.hush .btn.peach { background: linear-gradient(135deg, #f6c9ab, #e99a76); color: #2c160b; }
+html.hush .section-title a, html.hush .link { color: var(--gold); }
+html.hush .plus { background: rgba(255, 255, 255, 0.08); }
+
+/* ---------------- Pause / cravings (ember) ---------------- */
+html.hush .sos-card { background: linear-gradient(120deg, rgba(238, 158, 124, 0.24), rgba(26, 36, 49, 0.45) 70%); border: 1px solid rgba(238, 158, 124, 0.28); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); box-shadow: var(--shine), 0 18px 40px -24px rgba(238, 158, 124, 0.6); }
+html.hush .sos-card .ring { background: rgba(238, 158, 124, 0.2); }
+html.hush .sos-card .ring svg { fill: var(--ember); }
+html.hush .halt button.on { background: rgba(238, 158, 124, 0.16); border-color: var(--ember); }
+html.hush .step-dots i.on { background: var(--ember); }
+html.hush .help { background: rgba(238, 158, 124, 0.08); border-color: rgba(238, 158, 124, 0.24); }
+html.hush .try { background: rgba(166, 205, 191, 0.08); border-color: rgba(166, 205, 191, 0.26); }
+
+/* ---------------- Selection & progress ---------------- */
+html.hush .mood { color: var(--muted); font-size: 26px; transition: transform .35s var(--spring), background .25s, color .25s, border-color .25s; }
+html.hush .mood.on { background: rgba(235, 207, 156, 0.18); border-color: var(--gold); color: var(--gold); transform: scale(1.12); box-shadow: 0 0 22px -6px rgba(235, 207, 156, 0.7); }
+html.hush .chip.on { background: rgba(235, 207, 156, 0.16); border-color: rgba(235, 207, 156, 0.4); color: var(--text); }
+html.hush .progress i { background: linear-gradient(90deg, var(--gold), var(--sage)); }
+html.hush .glowline i { background: linear-gradient(90deg, #f7e6c4, var(--gold)); box-shadow: 0 0 14px rgba(235, 207, 156, 0.65); }
+html.hush .lesson-row.done .lesson-num { background: var(--sage); color: #13261f; }
+html.hush .lesson-row.next .lesson-num { background: var(--gold); color: #241b0e; }
+html.hush .scene.on { box-shadow: 0 0 0 2px var(--gold), 0 14px 30px -10px rgba(235, 207, 156, 0.55); }
+html.hush .scene .on-dot { background: var(--gold); box-shadow: 0 0 8px var(--gold); }
+html.hush .showcase { background: linear-gradient(180deg, rgba(40, 54, 72, 0.5), rgba(22, 30, 41, 0.4)); }
+html.hush .ec .badge { background: rgba(14, 20, 28, 0.55); }
+html.hush .check .box { border-color: var(--faint); }
+html.hush .check.on .box { background: var(--gold); border-color: var(--gold); box-shadow: 0 0 14px rgba(235, 207, 156, 0.5); animation: tick-pop .45s var(--spring); }
+html.hush .check.on .box::after { border-color: #241b0e; }
+@keyframes tick-pop { 0% { transform: scale(.6); } 100% { transform: scale(1); } }
+html.hush .switch input:checked + i { background: var(--gold); box-shadow: 0 0 14px rgba(235, 207, 156, 0.45); }
+html.hush input[type=range]::-webkit-slider-thumb { box-shadow: 0 0 12px rgba(235, 207, 156, 0.7); }
+html.hush .bars .bar i { background: linear-gradient(180deg, var(--mist), rgba(157, 184, 211, 0.25)); }
+html.hush .insight b { color: var(--gold); }
+html.hush .list-row .val { color: var(--gold); }
+html.hush .urge-num { color: var(--ember); }
+
+/* ---------------- Breathing orb: a small moon that breathes ---------------- */
+html.hush .orb { background: radial-gradient(circle at 38% 32%, #fffaf0 0%, var(--orb, #ebcf9c) 30%, color-mix(in srgb, var(--orb, #ebcf9c) 45%, #0e141c) 74%, transparent 76%); box-shadow: 0 0 70px -10px color-mix(in srgb, var(--orb, #ebcf9c) 70%, transparent), inset 0 -10px 30px rgba(0, 0, 0, 0.25); }
+html.hush .orb-wrap .halo { border-color: rgba(235, 207, 156, 0.14); animation: halo-ripple 6s ease-in-out infinite; }
+html.hush .orb-wrap .halo.h2 { animation-delay: -3s; }
+@keyframes halo-ripple { 0%, 100% { transform: scale(1); opacity: .9; } 50% { transform: scale(1.04); opacity: .4; } }
+
+/* ---------------- Tab bar: glass with a sliding pill ---------------- */
+html.hush .tabbar { background: rgba(16, 23, 32, 0.55); border: 1px solid var(--line); backdrop-filter: blur(22px) saturate(150%); -webkit-backdrop-filter: blur(22px) saturate(150%); box-shadow: var(--shine), 0 18px 40px -18px rgba(0, 0, 0, 0.75); }
+html.hush .tabbar button { z-index: 1; padding: 9px 12px; transition: color .3s; }
+html.hush .tabbar button::after { display: none; }
+html.hush .tabbar button.active { color: var(--text); }
+html.hush .tabbar .sos { color: var(--ember); background: rgba(238, 158, 124, 0.12); }
+html.hush .tabbar .sos::before { box-shadow: 0 0 0 1px rgba(238, 158, 124, 0.35); animation-name: sosGlowHush; }
+@keyframes sosGlowHush { 50% { box-shadow: 0 0 0 1px rgba(238, 158, 124, 0.6), 0 0 18px rgba(238, 158, 124, 0.35); } }
+.tab-ind { display: none; }
+html.hush .tab-ind { display: block; position: absolute; z-index: 0; left: 0; top: 6px; bottom: 6px; border-radius: 14px; background: rgba(255, 255, 255, 0.1); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 14px -6px rgba(0, 0, 0, 0.5); transition: transform .5s var(--spring), width .5s var(--spring), opacity .3s; pointer-events: none; }
+html.hush .now-playing { background: rgba(16, 23, 32, 0.6); border: 1px solid var(--line); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+html.hush .eq i { background: var(--gold); }
+
+/* ---------------- Sheets, overlays, toast ---------------- */
+html.hush .sheet-backdrop { background: rgba(6, 10, 14, 0.45); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+html.hush .sheet { background: var(--bg2); border-color: rgba(226, 233, 243, 0.14); backdrop-filter: blur(28px) saturate(150%); -webkit-backdrop-filter: blur(28px) saturate(150%); box-shadow: var(--shine), 0 -20px 60px -20px rgba(0, 0, 0, 0.7); }
+html.hush .overlay { background: linear-gradient(180deg, rgba(14, 20, 28, 0.5), rgba(14, 20, 28, 0.86)); backdrop-filter: blur(20px) saturate(130%); -webkit-backdrop-filter: blur(20px) saturate(130%); }
+html.hush .toast { background: rgba(245, 239, 227, 0.94); color: #1d1a14; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+html.hush .lesson-body p { color: var(--text-2); }
+
+/* ---------------- Motion: one entrance per tab ---------------- */
+html.hush .view { animation: none; }
+html.hush .view.enter > * { animation: hush-rise .8s var(--ease) both; }
+html.hush .view.enter > *:nth-child(2) { animation-delay: 60ms; }
+html.hush .view.enter > *:nth-child(3) { animation-delay: 120ms; }
+html.hush .view.enter > *:nth-child(4) { animation-delay: 180ms; }
+html.hush .view.enter > *:nth-child(5) { animation-delay: 240ms; }
+html.hush .view.enter > *:nth-child(6) { animation-delay: 300ms; }
+html.hush .view.enter > *:nth-child(n+7) { animation-delay: 360ms; }
+@keyframes hush-rise { from { opacity: 0; transform: translateY(16px); filter: blur(4px); } }
+html.hush .hero-art { animation-duration: 8s; }
+
+@media (max-width: 760px) {
+  html.hush { --glass-blur: blur(14px) saturate(135%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.hush .view.enter > * { animation: none; }
+  .hs-moon svg, .m-halo, .hs-fog { animation: none !important; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  html.hush { --card: #18212d; --bg2: #141c26; }
+}
+
+/* Hero cairn: the top stones settle gently, like breathing */
+html.hush .hero-art.cairn { filter: drop-shadow(0 24px 30px rgba(0, 0, 0, 0.45)); }
+.cairn .cairn-mid { transform-box: view-box; transform-origin: 105px 125px; animation: cairn-sway 9s ease-in-out infinite alternate; }
+.cairn .cairn-top { transform-box: view-box; transform-origin: 106px 90px; animation: cairn-sway 7s ease-in-out -2s infinite alternate-reverse; }
+@keyframes cairn-sway { from { transform: rotate(-1.6deg); } to { transform: rotate(1.6deg); } }
+html.hush .pro-badge { background: linear-gradient(90deg, #ebcf9c, #f3ddb0); color: #241b0e; }
+@media (prefers-reduced-motion: reduce) { .cairn .cairn-mid, .cairn .cairn-top { animation: none; } }
+/* Text that sits straight on the sky stays legible over the moon and the dawn/dusk glow */
+html.hush .hero h2, html.hush .hero p, html.hush .dial-head, html.hush .bw, html.hush .dial-sum, html.hush .section-title h3 { text-shadow: 0 2px 18px rgba(8, 12, 18, 0.75); }
+
+/* Firefly layer: above the content, glowing through the glass, never catching taps */
+.hs-top { display: none; }
+html.hush .hs-top { display: block; position: fixed; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; mix-blend-mode: screen; }
+
+/* ---------------- Tap feedback (both looks; see tap.js) ---------------- */
+.tap-layer { position: fixed; inset: 0; z-index: 90; pointer-events: none; overflow: hidden; }
+.tap-clip { position: fixed; overflow: hidden; pointer-events: none; }
+.tap-wave { position: absolute; border-radius: 50%; pointer-events: none; mix-blend-mode: screen; }
+.tap-spark { position: fixed; width: 5px; height: 5px; border-radius: 50%; pointer-events: none; background: var(--c, #f6e2b8); box-shadow: 0 0 8px 2px var(--c, rgba(246, 226, 184, .8)); }
+html:not(.hush) .tap-spark { --c: #d9cfff; }
+.tap-ring { position: fixed; width: 120px; height: 120px; border-radius: 50%; pointer-events: none; border: 1.5px solid rgba(243, 222, 180, .55); box-shadow: 0 0 18px rgba(243, 222, 180, .25), inset 0 0 18px rgba(243, 222, 180, .15); }
+/* The script handles press depth, so the old CSS press shrink would double it */
+html.hush .btn:active, html.hush .tile:active, html.hush .look-opt:active { transform: none; }
+/* Mood faces give a little nod when chosen */
+html.hush .mood.on .li { animation: mood-nod .5s cubic-bezier(.3,1.4,.5,1); }
+@keyframes mood-nod { 0% { transform: rotate(0) scale(.8); } 40% { transform: rotate(-10deg) scale(1.1); } 100% { transform: none; } }
+/* Switch thumbs squash as they slide */
+.switch input:active + i::after, .switch:active i::after { width: 26px; }
+html.hush .tabbar button.active { animation: tab-lift .45s cubic-bezier(.3,1.4,.5,1); }
+@keyframes tab-lift { 40% { transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) { html.hush .mood.on .li, html.hush .tabbar button.active { animation: none; } }

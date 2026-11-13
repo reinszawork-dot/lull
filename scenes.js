@@ -141,8 +141,28 @@ window.Scenes = (() => {
   const ALIAS = { brown: 'aurora', drone: 'lanterns', bodyscan: 'aurora', karoo: 'karoo', cabin: 'fire' };
   function scene(kind, hue) { n++; const k = art[kind] ? kind : ALIAS[kind] || 'aurora'; return art[k](`s${n}`, hue); }
 
+  // Hush look: a moonlit cairn of river stones, rim-lit from the moon's side, with fireflies.
+  function heroHush() {
+    return `<svg class="hero-art cairn" viewBox="0 0 210 190" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+      <radialGradient id="cg" cx="50%" cy="50%"><stop offset="0" stop-color="#ebcf9c" stop-opacity=".28"/><stop offset="1" stop-color="#ebcf9c" stop-opacity="0"/></radialGradient>
+      <radialGradient id="cs1" cx="62%" cy="22%" r="85%"><stop offset="0" stop-color="#55667a"/><stop offset=".55" stop-color="#26323f"/><stop offset="1" stop-color="#121922"/></radialGradient>
+      <radialGradient id="cs2" cx="64%" cy="20%" r="85%"><stop offset="0" stop-color="#6a7c8f"/><stop offset=".55" stop-color="#303e4d"/><stop offset="1" stop-color="#18212b"/></radialGradient>
+      <radialGradient id="cs3" cx="66%" cy="18%" r="85%"><stop offset="0" stop-color="#8496a8"/><stop offset=".55" stop-color="#3d4c5c"/><stop offset="1" stop-color="#1f2a35"/></radialGradient>
+      <linearGradient id="crim" x1="0" y1="0" x2="1" y2="0"><stop offset=".45" stop-color="#f3ddb0" stop-opacity="0"/><stop offset="1" stop-color="#f3ddb0" stop-opacity=".85"/></linearGradient></defs>
+      <ellipse cx="105" cy="104" rx="98" ry="78" fill="url(#cg)"/>
+      <ellipse cx="105" cy="172" rx="62" ry="7" fill="#000" opacity=".35"/>
+      <path d="M48 150c0-20 26-30 57-30s57 10 57 30-26 22-57 22-57-2-57-22z" fill="url(#cs1)"/>
+      <path d="M118 121c22 3 42 13 44 29" fill="none" stroke="url(#crim)" stroke-width="2" stroke-linecap="round"/>
+      <g class="cairn-mid"><path d="M66 112c0-15 18-24 40-24s40 9 40 24-18 17-40 17-40-2-40-17z" fill="url(#cs2)"/>
+        <path d="M116 89c16 2 29 10 30 22" fill="none" stroke="url(#crim)" stroke-width="1.8" stroke-linecap="round"/>
+        <g class="cairn-top"><path d="M82 79c0-12 11-19 25-19s25 7 25 19-11 13-25 13-25-2-25-13z" fill="url(#cs3)"/>
+          <path d="M113 61c10 1 18 7 19 16" fill="none" stroke="url(#crim)" stroke-width="1.6" stroke-linecap="round"/></g></g>
+      <g fill="#ffe0a0"><circle class="anim-glow" cx="166" cy="72" r="2.2"/><circle class="anim-glow" style="animation-delay:-1.2s" cx="44" cy="96" r="1.6"/><circle class="anim-glow" style="animation-delay:-.6s" cx="150" cy="40" r="1.3"/></g>
+    </svg>`;
+  }
   // Floating balance stones for the hero.
   function hero() {
+    if (window.LullLook && LullLook.get() === 'hush') return heroHush();
     return `<svg class="hero-art" viewBox="0 0 210 190" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
       <radialGradient id="hs1" cx="40%" cy="30%"><stop offset="0" stop-color="#5a5466"/><stop offset=".6" stop-color="#25212c"/><stop offset="1" stop-color="#0e0c12"/></radialGradient>
       <radialGradient id="hs2" cx="40%" cy="25%"><stop offset="0" stop-color="#fff0a8"/><stop offset=".45" stop-color="#e8c25a"/><stop offset="1" stop-color="#9a6e1e"/></radialGradient>
